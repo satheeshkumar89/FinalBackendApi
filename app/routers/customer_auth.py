@@ -84,6 +84,60 @@ def verify_otp_endpoint(request: VerifyOTPRequest, db: Session = Depends(get_db)
     )
 
 
+@router.post("/firebase-verify", response_model=CustomerTokenResponse)
+def verify_firebase_token_endpoint(request: dict, db: Session = Depends(get_db)):
+    """Verify Firebase ID token and return JWT token for customer"""
+    from app.services.firebase_service import FirebaseService
+    
+    id_token = request.get('id_token')
+    if not id_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="id_token is required"
+        )
+        
+    # Verify Firebase token
+    result = FirebaseService.verify_firebase_token(id_token)
+    
+    if not result.get('success'):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Firebase token: {result.get('error')}"
+        )
+        
+    phone_number = result.get('phone_number')
+    if not phone_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number not found in Firebase token"
+        )
+    
+    # Get or create customer
+    customer = db.query(Customer).filter(Customer.phone_number == phone_number).first()
+    
+    if not customer:
+        # Create new customer with minimal info
+        customer = Customer(
+            phone_number=phone_number,
+            full_name="",  # Will be updated later
+            email=None  # Will be updated later
+        )
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+    
+    # Create access token
+    access_token = create_access_token(
+        data={"customer_id": customer.id, "phone_number": customer.phone_number, "role": "customer"}
+    )
+    
+    return CustomerTokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        customer=CustomerResponse.from_orm(customer)
+    )
+
+
 @router.post("/logout", response_model=APIResponse)
 def logout():
     """Logout customer"""
