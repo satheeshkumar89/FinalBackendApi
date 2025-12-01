@@ -41,7 +41,10 @@ manager = ConnectionManager()
 
 def map_to_order_summary(order: Order) -> dict:
     """Map order to summary response"""
-    item_count = sum(item.quantity for item in order.items)
+    item_count = 0
+    if order.items:
+        item_count = sum(item.quantity for item in order.items)
+        
     return {
         "order_id": order.id,
         "item_count": item_count,

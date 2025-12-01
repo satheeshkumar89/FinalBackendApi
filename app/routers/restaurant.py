@@ -157,13 +157,50 @@ def update_restaurant_status(
 
 @router.get("/details", response_model=APIResponse)
 def get_restaurant_details(
-    restaurant: Restaurant = Depends(get_current_restaurant)
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
 ):
     """Get restaurant details"""
+    # Serialize basic info manually to avoid Pydantic validation errors on missing relationships
+    restaurant_data = RestaurantResponse.from_orm(restaurant).dict()
+    
+    # Safely handle Address
+    if restaurant.address:
+        restaurant_data["address"] = AddressResponse.from_orm(restaurant.address).dict()
+    else:
+        restaurant_data["address"] = None
+        
+    # Safely handle Cuisines
+    if restaurant.cuisines:
+        restaurant_data["cuisines"] = [CuisineResponse.from_orm(rc.cuisine).dict() for rc in restaurant.cuisines if rc.cuisine]
+    else:
+        restaurant_data["cuisines"] = []
+        
+    # Safely handle Menu Items
+    # (Optional: usually fetched separately, but included in full details)
+    if restaurant.menu_items:
+        restaurant_data["menu"] = [MenuItemResponse.from_orm(item).dict() for item in restaurant.menu_items if item.is_available]
+    else:
+        restaurant_data["menu"] = []
+        
+    # Safely handle Reviews
+    if restaurant.reviews:
+        # Limit to recent 5 reviews
+        reviews = sorted(restaurant.reviews, key=lambda r: r.created_at, reverse=True)[:5]
+        review_list = []
+        for review in reviews:
+            review_dict = ReviewResponse.from_orm(review).dict()
+            if review.customer:
+                review_dict["customer_name"] = review.customer.full_name or "Anonymous"
+            review_list.append(review_dict)
+        restaurant_data["reviews"] = review_list
+    else:
+        restaurant_data["reviews"] = []
+    
     return APIResponse(
         success=True,
         message="Restaurant details retrieved successfully",
-        data=RestaurantResponse.from_orm(restaurant).dict()
+        data=restaurant_data
     )
 
 

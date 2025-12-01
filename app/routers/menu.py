@@ -63,6 +63,21 @@ def get_menu_items_grouped(
     """Get menu items grouped by categories (for UI display)"""
     from collections import defaultdict
     
+    # Check if categories exist, if not, try to seed them (Auto-Healing)
+    category_count = db.query(Category).count()
+    if category_count == 0:
+        try:
+            # Basic seed if table is empty
+            default_cats = [
+                "Starters", "Main Course", "Breads", "Rice & Biryani", 
+                "Desserts", "Beverages", "Snacks", "Combos"
+            ]
+            for i, name in enumerate(default_cats):
+                db.add(Category(name=name, display_order=i+1, is_active=True))
+            db.commit()
+        except Exception:
+            db.rollback() # Ignore errors if seeding fails (e.g. concurrent request)
+
     # Get all menu items for this restaurant
     items = db.query(MenuItem).filter(
         MenuItem.restaurant_id == restaurant.id
@@ -73,9 +88,16 @@ def get_menu_items_grouped(
     uncategorized_items = []
     
     for item in items:
-        if item.category_id and item.category:
-            category_key = item.category.name
-            grouped_items[category_key].append(MenuItemResponse.from_orm(item).dict())
+        # Robust check: Ensure category_id is valid and category exists
+        if item.category_id:
+            # We fetch category name eagerly or fallback to "Unknown"
+            # Ideally, we should join, but for now let's be safe
+            if item.category:
+                 category_key = item.category.name
+                 grouped_items[category_key].append(MenuItemResponse.from_orm(item).dict())
+            else:
+                 # Category ID exists but record missing (Foreign Key issue?)
+                 uncategorized_items.append(MenuItemResponse.from_orm(item).dict())
         else:
             uncategorized_items.append(MenuItemResponse.from_orm(item).dict())
     
@@ -88,7 +110,7 @@ def get_menu_items_grouped(
         category = db.query(Category).filter(Category.name == category_name).first()
         
         categories_with_items.append({
-            "category": CategoryResponse.from_orm(category).dict() if category else None,
+            "category": CategoryResponse.from_orm(category).dict() if category else {"id": 0, "name": category_name, "is_active": True, "display_order": 0},
             "items": category_items,
             "item_count": len(category_items)
         })
