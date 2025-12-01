@@ -89,68 +89,75 @@ CATEGORIES = [
 
 
 def upgrade():
-    # 1. Create categories table
-    op.create_table(
-        'categories',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=100), nullable=False),
-        sa.Column('icon', sa.String(length=255), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=True, default=True),
-        sa.Column('display_order', sa.Integer(), nullable=True, default=0),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name')
-    )
-    op.create_index(op.f('ix_categories_id'), 'categories', ['id'], unique=False)
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
     
-    # 2. Seed categories
-    categories_table = sa.table(
-        'categories',
-        sa.column('id', sa.Integer),
-        sa.column('name', sa.String),
-        sa.column('icon', sa.String),
-        sa.column('is_active', sa.Boolean),
-        sa.column('display_order', sa.Integer),
-        sa.column('created_at', sa.DateTime)
-    )
-    
-    op.bulk_insert(
-        categories_table,
-        [
-            {
-                'id': cat['id'],
-                'name': cat['name'],
-                'icon': None,
-                'is_active': True,
-                'display_order': cat['display_order'],
-                'created_at': datetime.utcnow()
-            }
-            for cat in CATEGORIES
-        ]
-    )
-    
-    # 3. Add category_id column to menu_items
-    op.add_column('menu_items', sa.Column('category_id', sa.Integer(), nullable=True))
-    op.create_foreign_key('fk_menu_items_category_id', 'menu_items', 'categories', ['category_id'], ['id'])
-    
-    # 4. Migrate existing category strings to category IDs (if needed)
-    # This is a best-effort migration - matches category names case-insensitively
-    connection = op.get_bind()
-    
-    # Create a mapping of category names to IDs
-    category_map = {cat['name'].lower(): cat['id'] for cat in CATEGORIES}
-    
-    # Update menu_items with matching categories
-    for cat_name, cat_id in category_map.items():
-        connection.execute(
-            sa.text(
-                "UPDATE menu_items SET category_id = :cat_id WHERE LOWER(category) = :cat_name"
-            ),
-            {"cat_id": cat_id, "cat_name": cat_name}
+    # 1. Create categories table if it doesn't exist
+    if not inspector.has_table('categories'):
+        op.create_table(
+            'categories',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=100), nullable=False),
+            sa.Column('icon', sa.String(length=255), nullable=True),
+            sa.Column('is_active', sa.Boolean(), nullable=True, default=True),
+            sa.Column('display_order', sa.Integer(), nullable=True, default=0),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('name')
+        )
+        op.create_index(op.f('ix_categories_id'), 'categories', ['id'], unique=False)
+        
+        # 2. Seed categories only if we created the table
+        categories_table = sa.table(
+            'categories',
+            sa.column('id', sa.Integer),
+            sa.column('name', sa.String),
+            sa.column('icon', sa.String),
+            sa.column('is_active', sa.Boolean),
+            sa.column('display_order', sa.Integer),
+            sa.column('created_at', sa.DateTime)
+        )
+        
+        op.bulk_insert(
+            categories_table,
+            [
+                {
+                    'id': cat['id'],
+                    'name': cat['name'],
+                    'icon': None,
+                    'is_active': True,
+                    'display_order': cat['display_order'],
+                    'created_at': datetime.utcnow()
+                }
+                for cat in CATEGORIES
+            ]
         )
     
-    # 5. Drop the old category column
-    op.drop_column('menu_items', 'category')
+    # 3. Add category_id column to menu_items if it doesn't exist
+    menu_items_columns = [c['name'] for c in inspector.get_columns('menu_items')]
+    if 'category_id' not in menu_items_columns:
+        op.add_column('menu_items', sa.Column('category_id', sa.Integer(), nullable=True))
+        op.create_foreign_key('fk_menu_items_category_id', 'menu_items', 'categories', ['category_id'], ['id'])
+        
+        # 4. Migrate existing category strings to category IDs (if needed)
+        # This is a best-effort migration - matches category names case-insensitively
+        connection = op.get_bind()
+        
+        # Create a mapping of category names to IDs
+        category_map = {cat['name'].lower(): cat['id'] for cat in CATEGORIES}
+        
+        # Update menu_items with matching categories
+        for cat_name, cat_id in category_map.items():
+            connection.execute(
+                sa.text(
+                    "UPDATE menu_items SET category_id = :cat_id WHERE LOWER(category) = :cat_name"
+                ),
+                {"cat_id": cat_id, "cat_name": cat_name}
+            )
+        
+        # 5. Drop the old category column
+        if 'category' in menu_items_columns:
+            op.drop_column('menu_items', 'category')
 
 
 def downgrade():
