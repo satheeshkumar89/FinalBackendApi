@@ -7,7 +7,8 @@ from app.schemas import (
     RestaurantCreate, RestaurantUpdate, RestaurantResponse, APIResponse,
     CuisineResponse, RestaurantCuisineCreate, AddressCreate, AddressUpdate,
     AddressResponse, DocumentUploadResponse, PresignedUrlResponse,
-    VerificationStatusResponse, MenuItemResponse, ReviewResponse
+    VerificationStatusResponse, MenuItemResponse, ReviewResponse,
+    OnboardingStatusResponse
 )
 from app.models import (
     Owner, Restaurant, Cuisine, RestaurantCuisine, Address, Document,
@@ -18,6 +19,75 @@ from app.services.verification_service import VerificationService
 import uuid
 
 router = APIRouter(prefix="/restaurant", tags=["Restaurant"])
+
+@router.get("/onboarding-status", response_model=APIResponse)
+def get_onboarding_status(
+    current_owner: Owner = Depends(get_current_owner),
+    db: Session = Depends(get_db)
+):
+    """Get the current onboarding status and next step"""
+    # 1. Owner Details (Always true if we are here, as get_current_owner validates token)
+    owner_completed = True
+    
+    # 2. Restaurant Details
+    restaurant = db.query(Restaurant).filter(Restaurant.owner_id == current_owner.id).first()
+    restaurant_completed = restaurant is not None
+    
+    # 3. Address Details
+    address_completed = False
+    if restaurant and restaurant.address:
+        address_completed = True
+        
+    # 4. Cuisine Selection
+    cuisine_completed = False
+    if restaurant and restaurant.cuisines:
+        cuisine_completed = True
+        
+    # 5. Document Upload
+    doc_completed = False
+    if restaurant:
+        # Check for required docs: fssai_license, restaurant_photo
+        docs = db.query(Document).filter(Document.restaurant_id == restaurant.id).all()
+        doc_types = [d.document_type for d in docs]
+        if "fssai_license" in doc_types and "restaurant_photo" in doc_types:
+            doc_completed = True
+            
+    # Determine Next Step
+    next_step = "owner_details"
+    if owner_completed:
+        next_step = "restaurant_details"
+        if restaurant_completed:
+            next_step = "address_details"
+            if address_completed:
+                next_step = "cuisine_selection"
+                if cuisine_completed:
+                    next_step = "document_upload"
+                    if doc_completed:
+                        next_step = "kyc_submitted"
+                        
+    # Verification Status
+    verification_status = "pending"
+    if restaurant:
+        verification_status = restaurant.verification_status.value
+        
+    # If already submitted/approved, next_step might be different
+    if verification_status in ["submitted", "under_review", "approved", "rejected"]:
+         next_step = "kyc_submitted"
+
+    return APIResponse(
+        success=True,
+        message="Onboarding status retrieved",
+        data=OnboardingStatusResponse(
+            owner_details_completed=owner_completed,
+            restaurant_details_completed=restaurant_completed,
+            address_details_completed=address_completed,
+            cuisine_selection_completed=cuisine_completed,
+            document_upload_completed=doc_completed,
+            next_step=next_step,
+            verification_status=verification_status
+        ).dict()
+    )
+
 
 
 @router.get("/types", response_model=APIResponse)

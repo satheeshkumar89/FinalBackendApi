@@ -28,22 +28,9 @@ def create_or_update_owner_details(
                 detail="Email already registered"
             )
         
-        # Check if phone number already exists for another owner
-        existing_phone = db.query(Owner).filter(
-            Owner.phone_number == owner_data.phone_number,
-            Owner.id != current_owner.id
-        ).first()
-        
-        if existing_phone:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Phone number already registered"
-            )
-        
         # Update owner details
         current_owner.full_name = owner_data.full_name
         current_owner.email = owner_data.email
-        current_owner.phone_number = owner_data.phone_number
         
         db.commit()
         db.refresh(current_owner)

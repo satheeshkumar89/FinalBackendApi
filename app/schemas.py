@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, List, Union, Any
 from datetime import datetime
 from decimal import Decimal
+import enum
 
 
 # ============= Common Response Schema =============
@@ -15,7 +16,7 @@ class APIResponse(BaseModel):
 class OwnerCreate(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    phone_number: str = Field(..., pattern=r'^\+?[1-9]\d{9,14}$')
+    phone_number: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{9,14}$')
 
 
 class OwnerUpdate(BaseModel):
@@ -431,6 +432,14 @@ class DashboardResponse(BaseModel):
 
 
 # ============= Verification Schemas =============
+class VerificationStatusEnum(str, enum.Enum):
+    PENDING = "pending"
+    SUBMITTED = "submitted"
+    UNDER_REVIEW = "under_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class VerificationStatusResponse(BaseModel):
     status: str
     verification_notes: Optional[str]
@@ -438,6 +447,16 @@ class VerificationStatusResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class OnboardingStatusResponse(BaseModel):
+    owner_details_completed: bool
+    restaurant_details_completed: bool
+    address_details_completed: bool
+    cuisine_selection_completed: bool
+    document_upload_completed: bool
+    next_step: str
+    verification_status: str
 
 
 # ============= Cart Schemas =============
