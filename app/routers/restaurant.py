@@ -446,7 +446,7 @@ def get_presigned_upload_url(
     """Get presigned URL for document upload"""
     try:
         # Validate document type
-        valid_types = ["fssai_license", "restaurant_photo"]
+        valid_types = ["fssai_license", "restaurant_photo", "menu_item_image"]
         if document_type not in valid_types:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -461,16 +461,22 @@ def get_presigned_upload_url(
             file_key=file_key,
             content_type=content_type
         )
+
+        # Generate public URL
+        public_url = s3_service.get_file_url(file_key)
         
         return APIResponse(
             success=True,
             message="Presigned URL generated successfully",
             data={
                 "upload_url": upload_url,
+                "public_url": public_url,
                 "file_key": file_key,
                 "expires_in": 3600
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

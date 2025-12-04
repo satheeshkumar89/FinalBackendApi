@@ -16,6 +16,10 @@ class S3Service:
             region_name=settings.AWS_REGION
         )
         self.bucket_name = settings.S3_BUCKET_NAME
+        if not self.bucket_name:
+            print("CRITICAL ERROR: S3_BUCKET_NAME is missing or empty in settings!")
+        else:
+            print(f"S3Service initialized with bucket: {self.bucket_name}")
     
     def generate_presigned_url(
         self, 
