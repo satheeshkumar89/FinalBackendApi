@@ -43,7 +43,7 @@ services:
     container_name: fastfoodie_api
     environment:
       DATABASE_URL: mysql+pymysql://fastfoodie_user:fastfoodie_pass@mysql:3306/fastfoodie
-      SECRET_KEY: your-secret-key-change-in-production
+      SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
