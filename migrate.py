@@ -6,6 +6,43 @@ This script creates all tables and seeds initial data
 from app.database import engine, Base, SessionLocal
 from app.models import Cuisine, RestaurantTypeEnum
 import sys
+import os
+from sqlalchemy import text
+
+
+def patch_existing_tables():
+    """Add missing columns to existing tables that Base.metadata.create_all misses"""
+    print("Checking for missing columns and patching existing tables...")
+    try:
+        with engine.connect() as connection:
+            # 1. Patch orders table for released_at
+            result = connection.execute(text("SHOW COLUMNS FROM orders LIKE 'released_at'"))
+            if not result.fetchone():
+                print("⚠️ Adding missing 'released_at' column to 'orders' table...")
+                connection.execute(text("ALTER TABLE orders ADD COLUMN released_at DATETIME NULL"))
+            
+            # 2. Patch device_tokens table
+            # Try to add customer_id if missing
+            result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'customer_id'"))
+            if not result.fetchone():
+                print("⚠️ Adding missing 'customer_id' column to 'device_tokens' table...")
+                connection.execute(text("ALTER TABLE device_tokens ADD COLUMN customer_id INT NULL"))
+            
+            # Try to add delivery_partner_id if missing
+            result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'delivery_partner_id'"))
+            if not result.fetchone():
+                print("⚠️ Adding missing 'delivery_partner_id' column to 'device_tokens' table...")
+                connection.execute(text("ALTER TABLE device_tokens ADD COLUMN delivery_partner_id INT NULL"))
+
+            # Ensure owner_id is nullable
+            print("Ensuring owner_id is nullable in 'device_tokens'...")
+            connection.execute(text("ALTER TABLE device_tokens MODIFY COLUMN owner_id INT NULL"))
+            
+            connection.execute(text("COMMIT"))
+            print("✅ Database tables patched successfully")
+    except Exception as e:
+        print(f"✗ Error patching tables: {e}")
+        # Continue anyway as create_all might handle some parts
 
 
 def create_tables():
@@ -66,6 +103,7 @@ def main():
     
     try:
         create_tables()
+        patch_existing_tables() # Added this call
         seed_cuisines()
         
         print("\n" + "=" * 50)
