@@ -332,83 +332,98 @@ async def create_order(
     current_customer: Customer = Depends(get_current_customer)
 ):
     """Create new order"""
-    # 1. Validate Cart/Items
-    # For now, assuming we use the cart
-    cart = get_or_create_cart(db, current_customer.id)
-    if not cart.items:
-        raise HTTPException(status_code=400, detail="Cart is empty")
-        
-    if cart.restaurant_id != request.restaurant_id:
-         raise HTTPException(status_code=400, detail="Cart restaurant mismatch")
+    try:
+        # 1. Validate Cart/Items
+        cart = get_or_create_cart(db, current_customer.id)
+        if not cart.items:
+            raise HTTPException(status_code=400, detail="Cart is empty")
+            
+        if cart.restaurant_id != request.restaurant_id:
+             raise HTTPException(status_code=400, detail="Cart restaurant mismatch")
 
-    # 2. Get Address
-    address = db.query(CustomerAddress).filter(
-        CustomerAddress.id == request.address_id,
-        CustomerAddress.customer_id == current_customer.id
-    ).first()
-    
-    if not address:
-        # For demo, if address_id is 0 or not found, use a dummy address string
-        delivery_address_str = "123 MG Road, Bangalore, Karnataka 560001"
-    else:
-        delivery_address_str = f"{address.address_line_1}, {address.city}, {address.pincode}"
-
-    # 3. Calculate Totals
-    cart_totals = calculate_cart_totals(cart)
-    
-    # 4. Create Order
-    order = Order(
-        order_number=generate_order_number(),
-        restaurant_id=request.restaurant_id,
-        customer_id=current_customer.id,
-        customer_name=current_customer.full_name or "Guest",
-        customer_phone=current_customer.phone_number,
-        delivery_address=delivery_address_str,
-        status="new",
-        total_amount=cart_totals.total_amount,
-        delivery_fee=cart_totals.delivery_fee,
-        tax_amount=cart_totals.tax_amount,
-        discount_amount=cart_totals.discount_amount,
-        payment_method=request.payment_method,
-        payment_status="success" # Mocking success
-    )
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    
-    # 5. Create Order Items
-    for item in cart.items:
-        price = item.menu_item.discount_price if item.menu_item.discount_price and item.menu_item.discount_price > 0 else item.menu_item.price
-        order_item = OrderItem(
-            order_id=order.id,
-            menu_item_id=item.menu_item_id,
-            quantity=item.quantity,
-            price=price
-        )
-        db.add(order_item)
+        # 2. Get Address
+        address = db.query(CustomerAddress).filter(
+            CustomerAddress.id == request.address_id,
+            CustomerAddress.customer_id == current_customer.id
+        ).first()
         
-    # 6. Clear Cart
-    db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
-    cart.restaurant_id = None
-    db.commit()
-    
-    # Notify owner about new order
-    restaurant = db.query(Restaurant).filter(Restaurant.id == request.restaurant_id).first()
-    if restaurant:
-        await NotificationService.create_notification(
-            db=db,
-            owner_id=restaurant.owner_id,
-            title="New Order Received!",
-            message=f"You have a new order #{order.order_number} from {order.customer_name}.",
-            notification_type="new_order",
-            order_id=order.id
+        if not address:
+            delivery_address_str = "123 MG Road, Bangalore, Karnataka 560001"
+        else:
+            delivery_address_str = f"{address.address_line_1}, {address.city}, {address.pincode}"
+
+        # 3. Calculate Totals
+        cart_totals = calculate_cart_totals(cart)
+        
+        # 4. Create Order
+        order = Order(
+            order_number=generate_order_number(),
+            restaurant_id=request.restaurant_id,
+            customer_id=current_customer.id,
+            customer_name=current_customer.full_name or "Guest",
+            customer_phone=current_customer.phone_number,
+            delivery_address=delivery_address_str,
+            status="new",
+            total_amount=cart_totals.total_amount,
+            delivery_fee=cart_totals.delivery_fee,
+            tax_amount=cart_totals.tax_amount,
+            discount_amount=cart_totals.discount_amount,
+            payment_method=request.payment_method,
+            payment_status="success"
         )
-    
-    return APIResponse(
-        success=True,
-        message="Order placed successfully",
-        data={"order_id": order.id, "order_number": order.order_number}
-    )
+        db.add(order)
+        db.flush() # Get order ID without committing yet
+        
+        # 5. Create Order Items
+        for item in cart.items:
+            price = item.menu_item.discount_price if item.menu_item.discount_price and item.menu_item.discount_price > 0 else item.menu_item.price
+            order_item = OrderItem(
+                order_id=order.id,
+                menu_item_id=item.menu_item_id,
+                quantity=item.quantity,
+                price=price
+            )
+            db.add(order_item)
+            
+        # 6. Clear Cart
+        db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
+        cart.restaurant_id = None
+        
+        # Save order ID and number before commit to avoid expiration issues
+        res_order_id = order.id
+        res_order_number = order.order_number
+        
+        db.commit()
+        
+        # Notify owner about new order (best effort, don't fail order if notification fails)
+        try:
+            restaurant = db.query(Restaurant).filter(Restaurant.id == request.restaurant_id).first()
+            if restaurant:
+                await NotificationService.create_notification(
+                    db=db,
+                    owner_id=restaurant.owner_id,
+                    title="New Order Received!",
+                    message=f"You have a new order #{res_order_number} from {order.customer_name}.",
+                    notification_type="new_order",
+                    order_id=res_order_id
+                )
+        except Exception as ne:
+            print(f"Notification error: {ne}")
+        
+        return APIResponse(
+            success=True,
+            message="Order placed successfully",
+            data={"order_id": res_order_id, "order_number": res_order_number}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating order: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to place order: {str(e)}"
+        )
 
 
 # ============= Address Endpoints =============
