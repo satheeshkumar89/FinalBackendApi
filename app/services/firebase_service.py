@@ -13,23 +13,50 @@ class FirebaseService:
     def initialize(cls):
         """Initialize Firebase Admin SDK"""
         if cls._initialized:
-            return
+            return True
             
+        # Check if already initialized by another service or previously
         try:
-            # Check if service account key file exists
-            service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_KEY', 'firebase-service-account.json')
+            firebase_admin.get_app()
+            cls._initialized = True
+            return True
+        except ValueError:
+            # App not initialized yet, proceed
+            pass
+
+        try:
+            # List of possible locations for the service account key
+            possible_paths = [
+                os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"),
+                "firebase-service-account.json",
+                "/app/firebase-service-account.json",
+                os.path.join(os.getcwd(), "firebase-service-account.json"),
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "firebase-service-account.json")
+            ]
             
-            if os.path.exists(service_account_path):
-                cred = credentials.Certificate(service_account_path)
+            cred_path = None
+            for path in possible_paths:
+                if path and os.path.exists(path):
+                    cred_path = path
+                    break
+            
+            if cred_path:
+                abs_path = os.path.abspath(cred_path)
+                cred = credentials.Certificate(abs_path)
                 firebase_admin.initialize_app(cred)
                 cls._initialized = True
-                print("✓ Firebase Admin SDK initialized successfully")
+                print(f"✅ Firebase Admin SDK initialized successfully using {abs_path}")
+                return True
             else:
-                print(f"⚠ Firebase service account key not found at {service_account_path}")
-                print("  Firebase OTP will be simulated in development mode")
+                print(f"⚠ Firebase service account key not found. Checked: {possible_paths}")
+                print("  Firebase services will be simulated in development mode")
+                return False
         except Exception as e:
+            if "The default Firebase app already exists" in str(e):
+                cls._initialized = True
+                return True
             print(f"⚠ Firebase initialization failed: {e}")
-            print("  Firebase OTP will be simulated in development mode")
+            return False
     
     @staticmethod
     def send_otp_via_firebase(phone_number: str) -> dict:

@@ -5,42 +5,10 @@ from sqlalchemy.orm import Session
 from app.models import Notification, DeviceToken
 from typing import Optional, List
 
-# Global variable to track firebase initialization
-_firebase_initialized = False
+from app.services.firebase_service import FirebaseService
 
 def _initialize_firebase():
-    global _firebase_initialized
-    if _firebase_initialized:
-        return True
-        
-    # List of possible locations for the service account key
-    possible_paths = [
-        os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"),
-        "firebase-service-account.json",
-        "/app/firebase-service-account.json",
-        os.path.join(os.getcwd(), "firebase-service-account.json")
-    ]
-    
-    cred_path = None
-    for path in possible_paths:
-        if path and os.path.exists(path):
-            cred_path = path
-            break
-            
-    if cred_path:
-        try:
-            abs_path = os.path.abspath(cred_path)
-            cred = credentials.Certificate(abs_path)
-            firebase_admin.initialize_app(cred)
-            _firebase_initialized = True
-            print(f"✅ Firebase initialized successfully using {abs_path}")
-            return True
-        except Exception as e:
-            print(f"❌ Error initializing Firebase: {e}")
-            return False
-    else:
-        print(f"⚠️ Firebase service account key NOT FOUND in any of these locations: {possible_paths}. Push notifications will be skipped.")
-        return False
+    return FirebaseService.initialize()
 
 class NotificationService:
     @staticmethod
