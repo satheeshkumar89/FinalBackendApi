@@ -14,18 +14,20 @@ def _initialize_firebase():
         return True
         
     cred_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY", "firebase-service-account.json")
-    if os.path.exists(cred_path):
+    abs_path = os.path.abspath(cred_path)
+    
+    if os.path.exists(abs_path):
         try:
-            cred = credentials.Certificate(cred_path)
+            cred = credentials.Certificate(abs_path)
             firebase_admin.initialize_app(cred)
             _firebase_initialized = True
-            print("✅ Firebase initialized successfully")
+            print(f"✅ Firebase initialized successfully using {abs_path}")
             return True
         except Exception as e:
             print(f"❌ Error initializing Firebase: {e}")
             return False
     else:
-        print(f"⚠️ Firebase service account key not found at {cred_path}. Push notifications will be skipped.")
+        print(f"⚠️ Firebase service account key not found at {abs_path}. Push notifications will be skipped.")
         return False
 
 class NotificationService:
