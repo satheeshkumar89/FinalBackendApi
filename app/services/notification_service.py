@@ -173,5 +173,8 @@ class NotificationService:
             print(f"✅ Successfully sent {response.success_count} FCM messages")
             if response.failure_count > 0:
                 print(f"❌ Failed to send {response.failure_count} FCM messages")
+                for idx, resp in enumerate(response.responses):
+                    if not resp.success:
+                        print(f"   - Error for token {tokens[idx][:20]}...: {resp.exception}")
         except Exception as e:
             print(f"❌ Error during FCM multicast send: {e}")
