@@ -26,9 +26,15 @@ class NotificationService:
         if status == "rejected":
             title = f"Order #{order_id} Rejected"
             message = "Sorry, the restaurant cannot fulfill your order at this time."
-        elif status == "ready":
+        elif status == "accepted":
             title = "New Order Available!"
-            message = f"Order #{order_id} is ready for pickup. Tap to view and accept."
+            message = f"Order #{order_id} has been accepted and is being prepared."
+        elif status == "preparing":
+            title = "Order Being Prepared"
+            message = f"Order #{order_id} is now being prepared by the restaurant."
+        elif status == "ready":
+            title = "Order Ready for Pickup! 🛵"
+            message = f"Order #{order_id} is ready for pickup. Tap to accept!"
         elif status == "picked_up":
             title = f"Order #{order_id} Picked Up"
             message = "Order has been picked up and is on the way."
@@ -70,22 +76,22 @@ class NotificationService:
                 order_id=order_id
             )
         
-        # Special case: If status is 'ready', notify all online delivery partners
-        if status == "ready":
+        # Special case: If status is 'accepted', 'preparing', or 'ready', notify all online delivery partners
+        if status in ["accepted", "preparing", "ready"]:
             from app.models import DeliveryPartner
             online_partners = db.query(DeliveryPartner).filter(
                 DeliveryPartner.is_online == True,
                 DeliveryPartner.is_active == True
             ).all()
             
-            print(f"Notifying {len(online_partners)} online delivery partners about order #{order_id}")
+            print(f"Notifying {len(online_partners)} online delivery partners about order #{order_id} (Status: {status})")
             for partner in online_partners:
                 await NotificationService.create_notification(
                     db,
                     delivery_partner_id=partner.id,
-                    title="New Order Available! 🛵",
-                    message=f"Order #{order_id} is ready for pickup. Tap to view and accept!",
-                    notification_type="order_update",
+                    title=title,
+                    message=message,
+                    notification_type="order_update", # Match the app's expectation
                     order_id=order_id
                 )
 

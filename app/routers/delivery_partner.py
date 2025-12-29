@@ -420,11 +420,15 @@ async def get_available_orders(
     db: Session = Depends(get_db)
 ):
     """
-    Get all orders that are READY for pickup.
-    These are orders the delivery partner can accept.
+    Get all orders that are available for delivery.
+    Available statuses: ACCEPTED, PREPARING, READY (Wait for pickup)
     """
     orders = db.query(Order).filter(
-        Order.status == OrderStatusEnum.READY,
+        Order.status.in_([
+            OrderStatusEnum.ACCEPTED,
+            OrderStatusEnum.PREPARING,
+            OrderStatusEnum.READY
+        ]),
         Order.delivery_partner_id == None
     ).order_by(desc(Order.created_at)).all()
     
@@ -454,11 +458,16 @@ async def get_active_orders(
 ):
     """
     Get all active orders assigned to this delivery partner.
-    Status: PICKED_UP (out for delivery)
+    Statuses: ACCEPTED, PREPARING, READY (Assigned), PICKED_UP (Out for delivery)
     """
     orders = db.query(Order).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.PICKED_UP
+        Order.status.in_([
+            OrderStatusEnum.ACCEPTED,
+            OrderStatusEnum.PREPARING,
+            OrderStatusEnum.READY,
+            OrderStatusEnum.PICKED_UP
+        ])
     ).order_by(desc(Order.created_at)).all()
     
     result = []
@@ -598,10 +607,10 @@ async def accept_order_for_delivery(
             detail="Order not found"
         )
     
-    if order.status != OrderStatusEnum.READY:
+    if order.status not in [OrderStatusEnum.ACCEPTED, OrderStatusEnum.PREPARING, OrderStatusEnum.READY]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order is not ready for pickup. Current status: {order.status.value}"
+            detail=f"Order is not available for acceptance. Current status: {order.status.value}"
         )
     
     if order.delivery_partner_id:
@@ -610,10 +619,14 @@ async def accept_order_for_delivery(
             detail="Order has already been accepted by another delivery partner"
         )
     
-    # Assign delivery partner and update status to PICKED_UP
+    # Assign delivery partner
     order.delivery_partner_id = current_delivery_partner.id
-    order.status = OrderStatusEnum.PICKED_UP
-    order.pickedup_at = datetime.utcnow()
+    
+    # If order was READY, move it to PICKED_UP automatically
+    if order.status == OrderStatusEnum.READY:
+        order.status = OrderStatusEnum.PICKED_UP
+        order.pickedup_at = datetime.utcnow()
+    # Otherwise, it stays in its current status (ACCEPTED or PREPARING) until the restaurant marks it READY
     
     db.commit()
     db.refresh(order)
