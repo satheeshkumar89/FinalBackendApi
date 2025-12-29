@@ -65,9 +65,9 @@ class S3Service:
             return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
     
     def get_file_url(self, file_key: str) -> str:
-        """Get public URL for a file in S3"""
+        """Get public URL for a file in S3 or Local Uploads fallback"""
         if not self.bucket_name:
-            return f"http://dharaifooddelivery.in/static/placeholder.png"
+            return f"https://dharaifooddelivery.in/uploads/{file_key}"
         return f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{file_key}"
     
     def delete_file(self, file_key: str) -> bool:
