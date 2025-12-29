@@ -168,7 +168,8 @@ async def update_order_status_helper(
         order_id=order.id,
         status=new_status.value,
         customer_id=order.customer_id,
-        owner_id=order.restaurant.owner_id if order.restaurant else None
+        owner_id=order.restaurant.owner_id if order.restaurant else None,
+        delivery_partner_id=order.delivery_partner_id
     )
     
     return APIResponse(

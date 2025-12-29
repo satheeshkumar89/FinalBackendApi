@@ -26,6 +26,15 @@ class NotificationService:
         if status == "rejected":
             title = f"Order #{order_id} Rejected"
             message = "Sorry, the restaurant cannot fulfill your order at this time."
+        elif status == "ready":
+            title = "New Order Available!"
+            message = f"Order #{order_id} is ready for pickup. Tap to view and accept."
+        elif status == "picked_up":
+            title = f"Order #{order_id} Picked Up"
+            message = "Order has been picked up and is on the way."
+        elif status == "delivered":
+            title = f"Order #{order_id} Delivered"
+            message = "Order has been successfully delivered."
         else:
             title = f"Order #{order_id} Update"
             message = f"Your order is now {status.replace('_', ' ')}."
@@ -50,6 +59,35 @@ class NotificationService:
                 notification_type="order_update",
                 order_id=order_id
             )
+
+        if delivery_partner_id:
+            await NotificationService.create_notification(
+                db,
+                delivery_partner_id=delivery_partner_id,
+                title=title,
+                message=message,
+                notification_type="order_update",
+                order_id=order_id
+            )
+        
+        # Special case: If status is 'ready', notify all online delivery partners
+        if status == "ready":
+            from app.models import DeliveryPartner
+            online_partners = db.query(DeliveryPartner).filter(
+                DeliveryPartner.is_online == True,
+                DeliveryPartner.is_active == True
+            ).all()
+            
+            print(f"Notifying {len(online_partners)} online delivery partners about order #{order_id}")
+            for partner in online_partners:
+                await NotificationService.create_notification(
+                    db,
+                    delivery_partner_id=partner.id,
+                    title="New Order Available! 🛵",
+                    message=f"Order #{order_id} is ready for pickup. Tap to view and accept!",
+                    notification_type="order_update",
+                    order_id=order_id
+                )
 
         print(f"Notification triggered for Order #{order_id} - Status: {status}")
         return True
