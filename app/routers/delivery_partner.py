@@ -425,6 +425,7 @@ async def get_available_orders(
     """
     orders = db.query(Order).filter(
         Order.status.in_([
+            OrderStatusEnum.NEW,
             OrderStatusEnum.ACCEPTED,
             OrderStatusEnum.PREPARING,
             OrderStatusEnum.READY
@@ -607,7 +608,7 @@ async def accept_order_for_delivery(
             detail="Order not found"
         )
     
-    if order.status not in [OrderStatusEnum.ACCEPTED, OrderStatusEnum.PREPARING, OrderStatusEnum.READY]:
+    if order.status not in [OrderStatusEnum.NEW, OrderStatusEnum.ACCEPTED, OrderStatusEnum.PREPARING, OrderStatusEnum.READY]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order is not available for acceptance. Current status: {order.status.value}"

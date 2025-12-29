@@ -77,7 +77,7 @@ class NotificationService:
             )
         
         # Special case: If status is 'accepted', 'preparing', or 'ready', notify all online delivery partners
-        if status in ["accepted", "preparing", "ready"]:
+        if status in ["new", "accepted", "preparing", "ready"]:
             from app.models import DeliveryPartner
             online_partners = db.query(DeliveryPartner).filter(
                 DeliveryPartner.is_online == True,
