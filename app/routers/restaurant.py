@@ -113,44 +113,49 @@ def create_restaurant_details(
     """Create restaurant details"""
     try:
         # Check if owner already has a restaurant
-        existing_restaurant = db.query(Restaurant).filter(
+        restaurant = db.query(Restaurant).filter(
             Restaurant.owner_id == current_owner.id
         ).first()
         
-        if existing_restaurant:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Restaurant already exists. Use PUT to update."
+        if restaurant:
+            # Update existing instead of erroring
+            restaurant.restaurant_name = restaurant_data.restaurant_name
+            restaurant.restaurant_type = restaurant_data.restaurant_type
+            restaurant.fssai_license_number = restaurant_data.fssai_license_number
+            restaurant.opening_time = restaurant_data.opening_time
+            restaurant.closing_time = restaurant_data.closing_time
+            message = "Restaurant details updated successfully"
+        else:
+            # Check if FSSAI license already exists for ANOTHER restaurant
+            existing_fssai = db.query(Restaurant).filter(
+                Restaurant.fssai_license_number == restaurant_data.fssai_license_number,
+                Restaurant.owner_id != current_owner.id
+            ).first()
+            
+            if existing_fssai:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="FSSAI license number already registered to another restaurant"
+                )
+            
+            # Create new restaurant
+            restaurant = Restaurant(
+                owner_id=current_owner.id,
+                restaurant_name=restaurant_data.restaurant_name,
+                restaurant_type=restaurant_data.restaurant_type,
+                fssai_license_number=restaurant_data.fssai_license_number,
+                opening_time=restaurant_data.opening_time,
+                closing_time=restaurant_data.closing_time
             )
+            db.add(restaurant)
+            message = "Restaurant details saved successfully"
         
-        # Check if FSSAI license already exists
-        existing_fssai = db.query(Restaurant).filter(
-            Restaurant.fssai_license_number == restaurant_data.fssai_license_number
-        ).first()
-        
-        if existing_fssai:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="FSSAI license number already registered"
-            )
-        
-        # Create restaurant
-        restaurant = Restaurant(
-            owner_id=current_owner.id,
-            restaurant_name=restaurant_data.restaurant_name,
-            restaurant_type=restaurant_data.restaurant_type,
-            fssai_license_number=restaurant_data.fssai_license_number,
-            opening_time=restaurant_data.opening_time,
-            closing_time=restaurant_data.closing_time
-        )
-        
-        db.add(restaurant)
         db.commit()
         db.refresh(restaurant)
         
         return APIResponse(
             success=True,
-            message="Restaurant details saved successfully",
+            message=message,
             data=RestaurantResponse.from_orm(restaurant).dict()
         )
     except HTTPException:
@@ -342,35 +347,43 @@ def create_restaurant_address(
     """Create restaurant address"""
     try:
         # Check if address already exists
-        existing_address = db.query(Address).filter(
+        address = db.query(Address).filter(
             Address.restaurant_id == restaurant.id
         ).first()
         
-        if existing_address:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Address already exists. Use PUT to update."
+        if address:
+            # Update existing address
+            address.latitude = address_data.latitude
+            address.longitude = address_data.longitude
+            address.address_line_1 = address_data.address_line_1
+            address.address_line_2 = address_data.address_line_2
+            address.city = address_data.city
+            address.state = address_data.state
+            address.pincode = address_data.pincode
+            address.landmark = address_data.landmark
+            message = "Address updated successfully"
+        else:
+            # Create new address
+            address = Address(
+                restaurant_id=restaurant.id,
+                latitude=address_data.latitude,
+                longitude=address_data.longitude,
+                address_line_1=address_data.address_line_1,
+                address_line_2=address_data.address_line_2,
+                city=address_data.city,
+                state=address_data.state,
+                pincode=address_data.pincode,
+                landmark=address_data.landmark
             )
+            db.add(address)
+            message = "Address saved successfully"
         
-        address = Address(
-            restaurant_id=restaurant.id,
-            latitude=address_data.latitude,
-            longitude=address_data.longitude,
-            address_line_1=address_data.address_line_1,
-            address_line_2=address_data.address_line_2,
-            city=address_data.city,
-            state=address_data.state,
-            pincode=address_data.pincode,
-            landmark=address_data.landmark
-        )
-        
-        db.add(address)
         db.commit()
         db.refresh(address)
         
         return APIResponse(
             success=True,
-            message="Address saved successfully",
+            message=message,
             data=AddressResponse.from_orm(address).dict()
         )
     except HTTPException:
