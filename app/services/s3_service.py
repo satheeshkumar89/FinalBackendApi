@@ -40,9 +40,9 @@ class S3Service:
         """
         if not self.bucket_name:
             # Return a dummy URL if S3 is not configured
-            # This allows the app to proceed without crashing
+            # Changed to HTTPS to avoid Nginx 301 redirects
             print(f"WARNING: S3 not configured. Returning local mock URL for {file_key}")
-            return f"http://dharaifooddelivery.in/mock-upload/{file_key}"
+            return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
 
         try:
             params = {
@@ -62,7 +62,7 @@ class S3Service:
         except Exception as e:
             print(f"Error generating presigned URL: {e}")
             # Fallback to dummy URL even on AWS errors to keep the flow alive during testing
-            return f"http://dharaifooddelivery.in/mock-upload/{file_key}"
+            return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
     
     def get_file_url(self, file_key: str) -> str:
         """Get public URL for a file in S3"""

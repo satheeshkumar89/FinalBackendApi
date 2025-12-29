@@ -51,6 +51,12 @@ def health_check():
     return {"status": "healthy"}
 
 
+@app.put("/mock-upload/{file_path:path}")
+async def mock_upload(file_path: str):
+    """Bypass S3 upload for testing purposes"""
+    return {"message": f"Successfully mock-uploaded {file_path}", "status": "success"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
