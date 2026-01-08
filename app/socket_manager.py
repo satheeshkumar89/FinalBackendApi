@@ -23,7 +23,9 @@ def clean_json(data):
 # cors_allowed_origins="*" allows connection from any origin
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*'
+    cors_allowed_origins='*',
+    logger=True,
+    engineio_logger=True
 )
 
 # ASGI Application for mounting with FastAPI

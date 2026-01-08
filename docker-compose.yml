@@ -65,7 +65,7 @@ services:
       - fastfoodie_network
     volumes:
       - .:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
 
 volumes:
   mysql_data:
