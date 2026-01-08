@@ -2,12 +2,18 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create uploads directory if it doesn't exist
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
 from app.routers import auth, owner, restaurant, dashboard, menu, orders, admin, customer_auth, customer, notifications, delivery_partner
+from app.socket_manager import sio_app
 from app.database import engine, Base
 
 # Create database tables
@@ -30,6 +36,9 @@ app.add_middleware(
 
 # Mount Static Files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Mount Socket.IO app
+app.mount("/socket.io", sio_app)
 
 # Include routers
 app.include_router(auth.router)

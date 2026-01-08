@@ -20,6 +20,7 @@ from app.services.otp_service import create_otp, verify_otp, send_otp_sms
 from app.services.jwt_service import create_access_token
 from app.services.notification_service import NotificationService
 from app.dependencies import get_current_delivery_partner
+from app.socket_manager import emit_order_update
 from pydantic import BaseModel, Field
 
 
@@ -656,6 +657,10 @@ async def accept_order_for_delivery(
             order_id=order.id
         )
     
+    # Broadcast to Socket.IO
+    order_data = OrderResponse.from_orm(order).dict()
+    await emit_order_update(order_data, event_type="order_partner_assigned")
+    
     return APIResponse(
         success=True,
         message="Order accepted for delivery successfully",
@@ -724,6 +729,10 @@ async def mark_order_as_delivered(
             notification_type="order_update",
             order_id=order.id
         )
+    
+    # Broadcast to Socket.IO
+    order_data = OrderResponse.from_orm(order).dict()
+    await emit_order_update(order_data, event_type="order_delivered")
     
     return APIResponse(
         success=True,

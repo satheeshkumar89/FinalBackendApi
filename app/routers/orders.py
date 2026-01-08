@@ -6,6 +6,7 @@ from app.database import get_db
 from app.dependencies import get_current_restaurant
 from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse
 from app.models import Restaurant, Order, OrderStatusEnum
+from app.socket_manager import emit_order_update
 import json
 
 
@@ -172,6 +173,11 @@ async def update_order_status_helper(
         delivery_partner_id=order.delivery_partner_id
     )
     
+    # Broadcast to Socket.IO
+    from app.schemas import OrderResponse
+    order_data = OrderResponse.from_orm(order).dict()
+    await emit_order_update(order_data, event_type=f"order_{new_status.value}")
+    
     return APIResponse(
         success=True,
         message=f"Order marked as {new_status.value}",
@@ -311,6 +317,11 @@ async def reject_order(
         
         # Broadcast update
         await broadcast_new_order(restaurant.id, order)
+        
+        # Broadcast to Socket.IO
+        from app.schemas import OrderResponse
+        order_data = OrderResponse.from_orm(order).dict()
+        await emit_order_update(order_data, event_type="order_rejected")
         
         return APIResponse(
             success=True,

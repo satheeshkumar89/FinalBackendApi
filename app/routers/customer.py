@@ -410,6 +410,12 @@ async def create_order(
         except Exception as ne:
             print(f"Notification error: {ne}")
         
+        # Broadcast to Socket.IO
+        from app.socket_manager import emit_new_order
+        from app.schemas import OrderResponse
+        order_data = OrderResponse.from_orm(order).dict()
+        await emit_new_order(order_data)
+        
         return APIResponse(
             success=True,
             message="Order placed successfully",
