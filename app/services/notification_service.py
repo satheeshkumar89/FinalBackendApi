@@ -45,6 +45,15 @@ class NotificationService:
             title = f"Order #{order_id} Update"
             message = f"Your order is now {status.replace('_', ' ')}."
         
+        if status == "new":
+            owner_notification_type = "new_order"
+            owner_title = "New Order Received! 🛍️"
+            owner_message = f"You have a new order #{order_id}."
+        else:
+            owner_notification_type = "order_update"
+            owner_title = f"Order #{order_id} Update"
+            owner_message = f"Order status changed to {status}"
+
         # Save to database for each relevant user
         if customer_id:
             await NotificationService.create_notification(
@@ -53,17 +62,19 @@ class NotificationService:
                 title=title,
                 message=message,
                 notification_type="order_update",
-                order_id=order_id
+                order_id=order_id,
+                status=status
             )
             
         if owner_id:
             await NotificationService.create_notification(
                 db, 
                 owner_id=owner_id,
-                title=f"New Order Update #{order_id}",
-                message=f"Order status changed to {status}",
-                notification_type="order_update",
-                order_id=order_id
+                title=owner_title,
+                message=owner_message,
+                notification_type=owner_notification_type,
+                order_id=order_id,
+                status=status
             )
 
         if delivery_partner_id:
@@ -74,10 +85,10 @@ class NotificationService:
                 message=message,
                 notification_type="order_update",
                 order_id=order_id,
-                status=status # Pass status to include in data
+                status=status
             )
         
-        # Special case: If status is 'new', 'accepted', 'preparing', or 'ready', notify all online delivery partners
+        # Notify all online delivery partners if order is available for pickup
         if status in ["new", "accepted", "preparing", "ready"] and not delivery_partner_id:
             from app.models import DeliveryPartner
             online_partners = db.query(DeliveryPartner).filter(
@@ -85,7 +96,6 @@ class NotificationService:
                 DeliveryPartner.is_active == True
             ).all()
             
-            print(f"Notifying {len(online_partners)} online delivery partners about order #{order_id} (Status: {status})")
             for partner in online_partners:
                 await NotificationService.create_notification(
                     db,
@@ -96,8 +106,21 @@ class NotificationService:
                     order_id=order_id,
                     status=status
                 )
+        
+        # BROADCAST TO ADMINS (via FCM Topic)
+        # Any admin app subscribed to 'admin_updates' will receive this
+        await NotificationService._broadcast_to_topic(
+            topic="admin_updates",
+            title=f"Order #{order_id}: {status}",
+            message=f"Order {order_id} has moved to {status}",
+            data={
+                "notification_type": "admin_order_refresh",
+                "order_id": str(order_id),
+                "status": status
+            }
+        )
 
-        print(f"Notification triggered for Order #{order_id} - Status: {status}")
+        print(f"Notifications sent for Order #{order_id} - Status: {status}")
         return True
 
     @staticmethod
@@ -239,3 +262,23 @@ class NotificationService:
 
         except Exception as e:
             print(f"❌ Error during FCM multicast send: {e}")
+
+    @staticmethod
+    async def _broadcast_to_topic(topic: str, title: str, message: str, data: dict = None):
+        """Send FCM notification to all devices subscribed to a topic (e.g., admins)"""
+        if not _initialize_firebase():
+            return
+        
+        try:
+            fcm_message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=message
+                ),
+                topic=topic,
+                data=data or {}
+            )
+            response = messaging.send(fcm_message)
+            print(f"✅ Successfully broadcasted to topic '{topic}': {response}")
+        except Exception as e:
+            print(f"❌ Error during topic broadcast: {e}")
