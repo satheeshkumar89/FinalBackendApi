@@ -19,19 +19,38 @@ def clean_json(data):
         return data.isoformat()
     return data
 
+import os
+
 # Create an Async Socket.IO server
-# We allow both polling and websocket transports to ensure compatibility 
-# with various clients, including Flutter.
+# Use Redis as the message queue if available (essential for production scaling)
+redis_url = os.getenv("REDIS_URL")
+mgr = None
+
+if redis_url:
+    try:
+        mgr = socketio.AsyncRedisManager(redis_url)
+        logger.info(f"Using Redis for Socket.IO: {redis_url}")
+    except Exception as e:
+        logger.warning(f"Failed to initialize Redis manager: {e}")
+        mgr = None
+else:
+    logger.info("REDIS_URL not set, using default memory manager")
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins='*',
+    client_manager=mgr,
     logger=True,
     engineio_logger=True,
     # Be explicit about allowed transports
-    transports=['polling', 'websocket']
+    transports=['polling', 'websocket'],
+    # Increase ping timeout and interval for stability on slow connections
+    ping_timeout=60,
+    ping_interval=25
 )
 
-# ASGI Application for mounting with FastAPI
+# ASGI Application for mounting
+# Using empty socketio_path because we mount at /socket.io in main.py
 sio_app = socketio.ASGIApp(
     socketio_server=sio,
     socketio_path=''
