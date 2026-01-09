@@ -13,7 +13,7 @@ if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
 from app.routers import auth, owner, restaurant, dashboard, menu, orders, admin, customer_auth, customer, notifications, delivery_partner
-from app.socket_manager import sio_app
+# from app.socket_manager import sio_app
 from app.database import engine, Base
 
 # Create database tables
@@ -38,7 +38,7 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Mount Socket.IO app
-app.mount("/socket.io", sio_app)
+# app.mount("/socket.io", sio_app)
 
 # Include routers
 app.include_router(auth.router)

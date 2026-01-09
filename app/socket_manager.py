@@ -46,14 +46,17 @@ sio = socketio.AsyncServer(
     transports=['polling', 'websocket'],
     # Increase ping timeout and interval for stability on slow connections
     ping_timeout=60,
-    ping_interval=25
+    ping_interval=25,
+    # Allow large payloads if needed
+    max_decode_packets=1000
 )
 
 # ASGI Application for mounting
 # Using empty socketio_path because we mount at /socket.io in main.py
 sio_app = socketio.ASGIApp(
     socketio_server=sio,
-    socketio_path=''
+    socketio_path='',
+    static_files=None
 )
 
 @sio.event
