@@ -395,17 +395,16 @@ async def create_order(
         
         db.commit()
         
-        # Notify owner about new order (best effort, don't fail order if notification fails)
+        # Notify relevant parties about new order
         try:
             restaurant = db.query(Restaurant).filter(Restaurant.id == request.restaurant_id).first()
             if restaurant:
-                await NotificationService.create_notification(
+                # Use the comprehensive helper that notifies owner and delivery partners
+                await NotificationService.send_order_update(
                     db=db,
-                    owner_id=restaurant.owner_id,
-                    title="New Order Received!",
-                    message=f"You have a new order #{res_order_number} from {order.customer_name}.",
-                    notification_type="new_order",
-                    order_id=res_order_id
+                    order_id=res_order_id,
+                    status="new",
+                    owner_id=restaurant.owner_id
                 )
         except Exception as ne:
             print(f"Notification error: {ne}")

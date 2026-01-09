@@ -73,11 +73,12 @@ class NotificationService:
                 title=title,
                 message=message,
                 notification_type="order_update",
-                order_id=order_id
+                order_id=order_id,
+                status=status # Pass status to include in data
             )
         
-        # Special case: If status is 'accepted', 'preparing', or 'ready', notify all online delivery partners
-        if status in ["new", "accepted", "preparing", "ready"]:
+        # Special case: If status is 'new', 'accepted', 'preparing', or 'ready', notify all online delivery partners
+        if status in ["new", "accepted", "preparing", "ready"] and not delivery_partner_id:
             from app.models import DeliveryPartner
             online_partners = db.query(DeliveryPartner).filter(
                 DeliveryPartner.is_online == True,
@@ -89,10 +90,11 @@ class NotificationService:
                 await NotificationService.create_notification(
                     db,
                     delivery_partner_id=partner.id,
-                    title=title,
-                    message=message,
-                    notification_type="order_update", # Match the app's expectation
-                    order_id=order_id
+                    title=f"New Order #{order_id} Available!",
+                    message="A new order is available for pickup. Tap to see details.",
+                    notification_type="new_available_order",
+                    order_id=order_id,
+                    status=status
                 )
 
         print(f"Notification triggered for Order #{order_id} - Status: {status}")
@@ -107,7 +109,8 @@ class NotificationService:
         owner_id: Optional[int] = None,
         customer_id: Optional[int] = None,
         delivery_partner_id: Optional[int] = None,
-        order_id: Optional[int] = None
+        order_id: Optional[int] = None,
+        status: Optional[str] = None
     ) -> Notification:
         # 1. Save to Database
         notification = Notification(
@@ -133,7 +136,9 @@ class NotificationService:
             delivery_partner_id=delivery_partner_id,
             data={
                 "notification_type": notification_type,
-                "order_id": str(order_id) if order_id else ""
+                "order_id": str(order_id) if order_id else "",
+                "status": status or "",
+                "click_action": "FLUTTER_NOTIFICATION_CLICK"
             }
         )
         

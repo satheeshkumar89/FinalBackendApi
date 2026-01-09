@@ -633,29 +633,16 @@ async def accept_order_for_delivery(
     db.commit()
     db.refresh(order)
     
-    # Send notifications
-    # To Customer
-    if order.customer_id:
-        await NotificationService.create_notification(
-            db=db,
-            customer_id=order.customer_id,
-            title=f"Order #{order.order_number} Picked Up",
-            message=f"{current_delivery_partner.full_name} is on the way with your order!",
-            notification_type="order_update",
-            order_id=order.id
-        )
-    
-    # To Restaurant Owner
+    # Send notifications to Customer and Restaurant Owner
     restaurant = db.query(Restaurant).filter(Restaurant.id == order.restaurant_id).first()
-    if restaurant and restaurant.owner_id:
-        await NotificationService.create_notification(
-            db=db,
-            owner_id=restaurant.owner_id,
-            title=f"Order #{order.order_number} Picked Up",
-            message=f"Delivery partner {current_delivery_partner.full_name} has picked up the order",
-            notification_type="order_update",
-            order_id=order.id
-        )
+    await NotificationService.send_order_update(
+        db=db,
+        order_id=order.id,
+        status=order.status.value,
+        customer_id=order.customer_id,
+        owner_id=restaurant.owner_id if restaurant else None,
+        delivery_partner_id=order.delivery_partner_id
+    )
     
     # Broadcast to Socket.IO
     # order_data = OrderResponse.from_orm(order).dict()
@@ -706,29 +693,16 @@ async def mark_order_as_delivered(
     db.commit()
     db.refresh(order)
     
-    # Send notifications
-    # To Customer
-    if order.customer_id:
-        await NotificationService.create_notification(
-            db=db,
-            customer_id=order.customer_id,
-            title=f"Order #{order.order_number} Delivered",
-            message="Your order has been delivered. Enjoy your meal! 🎉",
-            notification_type="order_update",
-            order_id=order.id
-        )
-    
-    # To Restaurant Owner
+    # Send notifications to all parties
     restaurant = db.query(Restaurant).filter(Restaurant.id == order.restaurant_id).first()
-    if restaurant and restaurant.owner_id:
-        await NotificationService.create_notification(
-            db=db,
-            owner_id=restaurant.owner_id,
-            title=f"Order #{order.order_number} Delivered",
-            message="Order has been successfully delivered to the customer",
-            notification_type="order_update",
-            order_id=order.id
-        )
+    await NotificationService.send_order_update(
+        db=db,
+        order_id=order.id,
+        status="delivered",
+        customer_id=order.customer_id,
+        owner_id=restaurant.owner_id if restaurant else None,
+        delivery_partner_id=order.delivery_partner_id
+    )
     
     # Broadcast to Socket.IO
     # order_data = OrderResponse.from_orm(order).dict()
