@@ -26,7 +26,9 @@ sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins='*',
     logger=True,
-    engineio_logger=True
+    engineio_logger=True,
+    # Be explicit about allowed transports
+    transports=['polling', 'websocket']
 )
 
 # ASGI Application for mounting with FastAPI
