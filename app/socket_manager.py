@@ -20,15 +20,13 @@ def clean_json(data):
     return data
 
 # Create an Async Socket.IO server
-# We force polling only to bypass Nginx WebSocket upgrade issues if they exist
+# We allow both polling and websocket transports to ensure compatibility 
+# with various clients, including Flutter.
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins='*',
     logger=True,
-    engineio_logger=True,
-    # Force polling and DISABLE upgrades to stop the client from trying WebSockets
-    transports=['polling'],
-    allow_upgrades=False
+    engineio_logger=True
 )
 
 # ASGI Application for mounting with FastAPI
