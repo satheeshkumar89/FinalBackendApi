@@ -570,6 +570,9 @@ class OrderTrackingResponse(BaseModel):
     order_id: int
     order_number: str
     status: str
+    status_title: str
+    status_description: str
+    progress_percentage: int
     estimated_arrival_time: Optional[str]
     
     delivery_partner: Optional[DeliveryPartnerResponse]

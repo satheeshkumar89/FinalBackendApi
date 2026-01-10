@@ -24,26 +24,26 @@ class NotificationService:
         Send order update notification and save to database.
         """
         if status == "rejected":
-            title = f"Order #{order_id} Rejected"
-            message = "Sorry, the restaurant cannot fulfill your order at this time."
+            title = "Order Rejected"
+            message = "Sorry, the restaurant cannot fulfill your order right now."
         elif status == "accepted":
-            title = "New Order Available!"
-            message = f"Order #{order_id} has been accepted and is being prepared."
+            title = "Order Confirmed! 🎉"
+            message = f"Restaurant has accepted your order #{order_id}."
         elif status == "preparing":
-            title = "Order Being Prepared"
-            message = f"Order #{order_id} is now being prepared by the restaurant."
+            title = "Chef is preparing your food 👨‍🍳"
+            message = "Your delicious meal is being cooked with care."
         elif status == "ready":
-            title = "Order Ready for Pickup! 🛵"
-            message = f"Order #{order_id} is ready for pickup. Tap to accept!"
+            title = "Food is ready! 🛍️"
+            message = "Your order is packed and waiting for the delivery partner."
         elif status == "picked_up":
-            title = f"Order #{order_id} Picked Up"
-            message = "Order has been picked up and is on the way."
+            title = "Partner is on the way! 🛵"
+            message = "Your delivery partner has picked up your order and is coming to you."
         elif status == "delivered":
-            title = f"Order #{order_id} Delivered"
-            message = "Order has been successfully delivered."
+            title = "Order Delivered! 🍽️"
+            message = "Enjoy your meal! Don't forget to rate your experience."
         else:
-            title = f"Order #{order_id} Update"
-            message = f"Your order is now {status.replace('_', ' ')}."
+            title = "Order Update"
+            message = f"Your order #{order_id} is now {status.replace('_', ' ')}."
         
         if status == "new":
             owner_notification_type = "new_order"

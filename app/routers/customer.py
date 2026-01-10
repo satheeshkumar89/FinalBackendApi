@@ -676,31 +676,71 @@ def track_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
         
-    # 1. Build Timeline
-    timeline = []
+    # 1. Define Swiggy-style labels mapping
+    status_mapping = {
+        "new": {
+            "title": "Order Placed",
+            "desc": "Waiting for restaurant to confirm your order",
+            "progress": 10,
+            "index": -1
+        },
+        "accepted": {
+            "title": "Order Confirmed",
+            "desc": "Restaurant has accepted your order",
+            "progress": 25,
+            "index": 0
+        },
+        "preparing": {
+            "title": "Preparing Food",
+            "desc": "Chef is preparing your delicious meal",
+            "progress": 45,
+            "index": 1
+        },
+        "ready": {
+            "title": "Food is Ready",
+            "desc": "Your order is packed and ready for pickup",
+            "progress": 60,
+            "index": 1
+        },
+        "picked_up": {
+            "title": "Out for Delivery",
+            "desc": "Partner is on the way to your location",
+            "progress": 85,
+            "index": 3
+        },
+        "delivered": {
+            "title": "Delivered",
+            "desc": "Enjoy your delicious meal!",
+            "progress": 100,
+            "index": 4
+        },
+        "rejected": {
+            "title": "Order Rejected",
+            "desc": "Restaurant was unable to fulfill this order",
+            "progress": 0,
+            "index": -1
+        },
+        "cancelled": {
+            "title": "Order Cancelled",
+            "desc": "Order has been cancelled",
+            "progress": 0,
+            "index": -1
+        }
+    }
+
+    current_meta = status_mapping.get(order.status, status_mapping["new"])
     
-    # Define steps and their corresponding timestamp fields in Order model
+    # 2. Build Timeline
+    timeline = []
     steps = [
-        ("Order Confirmed", "Your order has been confirmed by the restaurant", "accepted_at"),
-        ("Preparing", "Restaurant is preparing your delicious food", "preparing_at"),
-        ("Handed Over to Partner", "Order released and moving to you", "released_at"),
-        ("Out for Delivery", "Your order is on the way", "pickedup_at"),
-        ("Delivered", "Enjoy your meal!", "delivered_at")
+        ("Confirmed", "Restaurant confirmed order", "accepted_at"),
+        ("Preparing", "Food is being cooked", "preparing_at"),
+        ("Ready", "Order ready for pickup", "ready_at"),
+        ("On the way", "Partner picked up order", "pickedup_at"),
+        ("Delivered", "Delivered successfully", "delivered_at")
     ]
     
-    current_status_index = -1
-    if order.status == "new":
-        current_status_index = -1
-    elif order.status == "accepted":
-        current_status_index = 0
-    elif order.status == "preparing" or order.status == "ready":
-        current_status_index = 1
-    elif order.status == "released":
-        current_status_index = 2
-    elif order.status == "picked_up":
-        current_status_index = 3
-    elif order.status == "delivered":
-        current_status_index = 4
+    current_status_index = current_meta["index"]
         
     for i, (title, subtitle, time_field) in enumerate(steps):
         timestamp = getattr(order, time_field)
@@ -718,39 +758,34 @@ def track_order(
             is_current=is_current
         ))
         
-    # 2. Delivery Partner (Mock if not assigned)
+    # 3. Delivery Partner
     delivery_partner_data = None
     if order.delivery_partner:
         delivery_partner_data = DeliveryPartnerResponse.from_orm(order.delivery_partner)
-    elif order.status in ["picked_up", "delivered"]:
-         # Mock for demo if no partner assigned but status implies it
-         delivery_partner_data = DeliveryPartnerResponse(
-             id=999,
-             full_name="Rajesh Kumar",
-             phone_number="+919876543210",
-             vehicle_number="DL 01 AB 1234",
-             rating=Decimal("4.8"),
-             profile_photo="https://randomuser.me/api/portraits/men/32.jpg"
-         )
 
-    # 3. Estimated Arrival Time (Mock logic)
+    # 4. Estimated Arrival Time
     estimated_arrival = "30 min"
     if order.status == "delivered":
         estimated_arrival = "Arrived"
     elif order.status == "picked_up":
-        estimated_arrival = "14 min"
+        estimated_arrival = "12-15 min"
+    elif order.status in ["preparing", "ready"]:
+        estimated_arrival = "20-25 min"
         
-    # 4. Bill Details
+    # 5. Bill Details
     item_total = sum(item.price * item.quantity for item in order.items)
     
     response_data = OrderTrackingResponse(
         order_id=order.id,
         order_number=order.order_number,
         status=order.status,
+        status_title=current_meta["title"],
+        status_description=current_meta["desc"],
+        progress_percentage=current_meta["progress"],
         estimated_arrival_time=estimated_arrival,
         delivery_partner=delivery_partner_data,
         timeline=timeline,
-        restaurant_name=order.restaurant.restaurant_name,
+        restaurant_name=order.restaurant.restaurant_name if order.restaurant else "Restaurant",
         items=[OrderItemResponse.from_orm(item) for item in order.items],
         item_total=item_total,
         delivery_fee=order.delivery_fee,
