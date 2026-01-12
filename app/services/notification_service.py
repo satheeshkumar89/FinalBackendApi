@@ -88,24 +88,58 @@ class NotificationService:
                 status=status
             )
         
-        # Notify all online delivery partners if order is available for pickup
+        # Notify nearby online delivery partners if order is available for pickup
         if status in ["new", "accepted", "preparing", "ready"] and not delivery_partner_id:
-            from app.models import DeliveryPartner
+            from app.models import DeliveryPartner, Order, Address
+            import math
+
+            # 1. Get Restaurant Location
+            order = db.query(Order).filter(Order.id == order_id).first()
+            restaurant_location = None
+            if order:
+                restaurant_address = db.query(Address).filter(Address.restaurant_id == order.restaurant_id).first()
+                if restaurant_address and restaurant_address.latitude and restaurant_address.longitude:
+                    restaurant_location = (float(restaurant_address.latitude), float(restaurant_address.longitude))
+
+            # 2. Get all online partners
             online_partners = db.query(DeliveryPartner).filter(
                 DeliveryPartner.is_online == True,
                 DeliveryPartner.is_active == True
             ).all()
             
             for partner in online_partners:
-                await NotificationService.create_notification(
-                    db,
-                    delivery_partner_id=partner.id,
-                    title=f"New Order #{order_id} Available!",
-                    message="A new order is available for pickup. Tap to see details.",
-                    notification_type="new_available_order",
-                    order_id=order_id,
-                    status=status
-                )
+                should_notify = True # Default to True if coordinates missing for backward compatibility
+                
+                # 3. Calculate Distance if both have coordinates
+                if restaurant_location and partner.latitude and partner.longitude:
+                    partner_loc = (float(partner.latitude), float(partner.longitude))
+                    
+                    # Haversine formula for distance calculation (in kilometers)
+                    R = 6371.0 # Earth radius
+                    lat1, lon1 = math.radians(restaurant_location[0]), math.radians(restaurant_location[1])
+                    lat2, lon2 = math.radians(partner_loc[0]), math.radians(partner_loc[1])
+                    
+                    dlat = lat2 - lat1
+                    dlon = lon2 - lon1
+                    
+                    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    distance = R * c
+                    
+                    # Only notify if within 5.0 KM
+                    if distance > 5.0:
+                        should_notify = False
+                
+                if should_notify:
+                    await NotificationService.create_notification(
+                        db,
+                        delivery_partner_id=partner.id,
+                        title=f"New Order #{order_id} Available!",
+                        message="A new order is available nearby. Tap to see details.",
+                        notification_type="new_available_order",
+                        order_id=order_id,
+                        status=status
+                    )
         
         # BROADCAST TO ADMINS (via FCM Topic)
         # Any admin app subscribed to 'admin_updates' will receive this

@@ -553,6 +553,8 @@ class DeliveryPartnerResponse(BaseModel):
     is_online: bool
     is_registered: bool
     verification_status: str
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
     
     class Config:
         from_attributes = True

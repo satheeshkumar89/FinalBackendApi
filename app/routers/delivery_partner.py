@@ -58,6 +58,11 @@ class OnlineStatusRequest(BaseModel):
     is_online: bool
 
 
+class LocationUpdate(BaseModel):
+    latitude: Decimal
+    longitude: Decimal
+
+
 class OrderListResponse(BaseModel):
     id: int
     order_number: str
@@ -354,6 +359,24 @@ async def toggle_online_status(
             "last_online_at": current_delivery_partner.last_online_at.isoformat() if current_delivery_partner.last_online_at else None,
             "last_offline_at": current_delivery_partner.last_offline_at.isoformat() if current_delivery_partner.last_offline_at else None
         }
+    )
+
+
+@router.post("/location", response_model=APIResponse)
+async def update_location(
+    location_data: LocationUpdate,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Update current location coordinates of the delivery partner."""
+    current_delivery_partner.latitude = location_data.latitude
+    current_delivery_partner.longitude = location_data.longitude
+    
+    db.commit()
+    
+    return APIResponse(
+        success=True,
+        message="Location updated successfully"
     )
 
 

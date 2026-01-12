@@ -314,6 +314,11 @@ class DeliveryPartner(Base):
     verification_notes = Column(Text, nullable=True)  # Admin notes for approval/rejection
     last_online_at = Column(DateTime(timezone=True), nullable=True)
     last_offline_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Location tracking for proximity-based assignments
+    latitude = Column(DECIMAL(10, 8), nullable=True)
+    longitude = Column(DECIMAL(11, 8), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

@@ -25,6 +25,7 @@ async def run_test():
          patch('app.models.DeviceToken'), \
          patch('app.models.DeliveryPartner'), \
          patch('app.models.Order'), \
+         patch('app.models.Address'), \
          patch('app.models.Restaurant'):
         
         from app.services.notification_service import NotificationService
@@ -32,9 +33,11 @@ async def run_test():
         # 1. Setup Mock DB Session
         db = MagicMock()
         
-        # Fake tokens and partners
+        # Fake tokens, partners, and addresses
         mock_token = MockModel(token="token_123")
-        mock_partner = MockModel(id=5, full_name="John Driver", is_online=True)
+        mock_partner = MockModel(id=5, full_name="John Driver", is_online=True, latitude=12.9716, longitude=77.5946)
+        mock_order = MockModel(id=555, restaurant_id=10, customer_id=1)
+        mock_address = MockModel(latitude=12.9717, longitude=77.5947) # Very close to partner
         
         def mock_query(model):
             query = MagicMock()
@@ -42,6 +45,10 @@ async def run_test():
                 query.filter.return_value.all.return_value = [mock_token]
             elif "DeliveryPartner" in str(model):
                 query.filter.return_value.all.return_value = [mock_partner]
+            elif "Order" in str(model):
+                query.filter.return_value.first.return_value = mock_order
+            elif "Address" in str(model):
+                query.filter.return_value.first.return_value = mock_address
             return query
 
         db.query.side_effect = mock_query
