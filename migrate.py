@@ -16,28 +16,93 @@ def patch_existing_tables():
     try:
         with engine.connect() as connection:
             # 1. Patch orders table for released_at
-            result = connection.execute(text("SHOW COLUMNS FROM orders LIKE 'released_at'"))
-            if not result.fetchone():
-                print("⚠️ Adding missing 'released_at' column to 'orders' table...")
-                connection.execute(text("ALTER TABLE orders ADD COLUMN released_at DATETIME NULL"))
-            
-            # 2. Patch device_tokens table
-            # Try to add customer_id if missing
-            result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'customer_id'"))
-            if not result.fetchone():
-                print("⚠️ Adding missing 'customer_id' column to 'device_tokens' table...")
-                connection.execute(text("ALTER TABLE device_tokens ADD COLUMN customer_id INT NULL"))
-            
-            # Try to add delivery_partner_id if missing
-            result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'delivery_partner_id'"))
-            if not result.fetchone():
-                print("⚠️ Adding missing 'delivery_partner_id' column to 'device_tokens' table...")
-                connection.execute(text("ALTER TABLE device_tokens ADD COLUMN delivery_partner_id INT NULL"))
+            print("Checking orders table for missing columns...")
+            is_sqlite = connection.engine.name == "sqlite"
+            try:
+                if is_sqlite:
+                    result = connection.execute(text("PRAGMA table_info(orders)"))
+                    columns = [row[1] for row in result.fetchall()]
+                    if 'released_at' not in columns:
+                        print("⚠️ Adding missing 'released_at' column to 'orders' (SQLite)...")
+                        connection.execute(text("ALTER TABLE orders ADD COLUMN released_at DATETIME NULL"))
+                else:
+                    result = connection.execute(text("SHOW COLUMNS FROM orders LIKE 'released_at'"))
+                    if not result.fetchone():
+                        print("⚠️ Adding missing 'released_at' column to 'orders' (MySQL)...")
+                        connection.execute(text("ALTER TABLE orders ADD COLUMN released_at DATETIME NULL"))
+            except Exception as e:
+                print(f"  - Note: Could not patch orders: {e}")
 
-            # Ensure owner_id is nullable
-            print("Ensuring owner_id is nullable in 'device_tokens'...")
-            connection.execute(text("ALTER TABLE device_tokens MODIFY COLUMN owner_id INT NULL"))
-            
+            # 2. Patch device_tokens table
+            print("Checking device_tokens table for missing columns...")
+            try:
+                if is_sqlite:
+                    result = connection.execute(text("PRAGMA table_info(device_tokens)"))
+                    columns = [row[1] for row in result.fetchall()]
+                    if 'customer_id' not in columns:
+                        print("⚠️ Adding missing 'customer_id' column to 'device_tokens' (SQLite)...")
+                        connection.execute(text("ALTER TABLE device_tokens ADD COLUMN customer_id INT NULL"))
+                    if 'delivery_partner_id' not in columns:
+                        print("⚠️ Adding missing 'delivery_partner_id' column to 'device_tokens' (SQLite)...")
+                        connection.execute(text("ALTER TABLE device_tokens ADD COLUMN delivery_partner_id INT NULL"))
+                else:
+                    # customer_id
+                    result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'customer_id'"))
+                    if not result.fetchone():
+                        print("⚠️ Adding missing 'customer_id' column to 'device_tokens' (MySQL)...")
+                        connection.execute(text("ALTER TABLE device_tokens ADD COLUMN customer_id INT NULL"))
+                    
+                    # delivery_partner_id
+                    result = connection.execute(text("SHOW COLUMNS FROM device_tokens LIKE 'delivery_partner_id'"))
+                    if not result.fetchone():
+                        print("⚠️ Adding missing 'delivery_partner_id' column to 'device_tokens' (MySQL)...")
+                        connection.execute(text("ALTER TABLE device_tokens ADD COLUMN delivery_partner_id INT NULL"))
+
+                # Ensure owner_id is nullable
+                print("Ensuring owner_id is nullable in 'device_tokens'...")
+                if is_sqlite:
+                    # SQLite doesn't support MODIFY COLUMN easily, usually it's nullable by default if not specified otherwise
+                    pass 
+                else:
+                    connection.execute(text("ALTER TABLE device_tokens MODIFY COLUMN owner_id INT NULL"))
+            except Exception as e:
+                print(f"  - Note: Could not patch device_tokens: {e}")
+
+            # 3. Patch delivery_partners table for location and other missing columns
+            print("Checking delivery_partners table for missing columns...")
+            delivery_partner_columns = [
+                ("latitude", "DECIMAL(10, 8) NULL"),
+                ("longitude", "DECIMAL(11, 8) NULL"),
+                ("vehicle_type", "VARCHAR(50) NULL"),
+                ("license_number", "VARCHAR(50) NULL"),
+                ("rating", "DECIMAL(3, 2) DEFAULT 5.0"),
+                ("profile_photo", "VARCHAR(500) NULL"),
+                ("is_online", "BOOLEAN DEFAULT FALSE"),
+                ("is_registered", "BOOLEAN DEFAULT FALSE"),
+                ("verification_status", "ENUM('pending', 'submitted', 'under_review', 'approved', 'rejected') DEFAULT 'pending'"),
+                ("verification_notes", "TEXT NULL"),
+                ("last_online_at", "DATETIME NULL"),
+                ("last_offline_at", "DATETIME NULL")
+            ]
+
+            for col_name, col_type in delivery_partner_columns:
+                try:
+                    if is_sqlite:
+                        # SQLite check
+                        result = connection.execute(text(f"PRAGMA table_info(delivery_partners)"))
+                        columns = [row[1] for row in result.fetchall()]
+                        if col_name not in columns:
+                            print(f"⚠️ Adding missing '{col_name}' column to 'delivery_partners' (SQLite)...")
+                            connection.execute(text(f"ALTER TABLE delivery_partners ADD COLUMN {col_name} {col_type}"))
+                    else:
+                        # MySQL check
+                        result = connection.execute(text(f"SHOW COLUMNS FROM delivery_partners LIKE '{col_name}'"))
+                        if not result.fetchone():
+                            print(f"⚠️ Adding missing '{col_name}' column to 'delivery_partners' (MySQL)...")
+                            connection.execute(text(f"ALTER TABLE delivery_partners ADD COLUMN {col_name} {col_type}"))
+                except Exception as col_e:
+                    print(f"  - Note: Could not add {col_name}: {col_e}")
+
             connection.execute(text("COMMIT"))
             print("✅ Database tables patched successfully")
     except Exception as e:
