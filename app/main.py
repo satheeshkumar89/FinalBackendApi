@@ -19,6 +19,15 @@ from app.database import engine, Base
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Auto-patch missing columns on startup
+try:
+    from migrate import patch_existing_tables
+    patch_existing_tables()
+except ImportError:
+    logger.warning("Migration script not found, skipping auto-patch.")
+except Exception as e:
+    logger.error(f"Failed to auto-patch database: {e}")
+
 app = FastAPI(
     title="FastFoodie API",
     description="Backend API for FastFoodie (Restaurant Partner, Customer & Delivery Partner)",
