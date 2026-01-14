@@ -1,50 +1,51 @@
 #!/bin/bash
-# Complete Fix for delivery_partners table - Add all missing columns
+# Complete Fix for delivery_partners table - Add all missing columns including Location
+# This fixes: Unknown column 'delivery_partners.latitude' in 'SELECT'
 
 echo "🔧 Adding all missing columns to delivery_partners table..."
 
-# Add all missing columns one by one
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(50) NULL AFTER vehicle_number;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN vehicle_type VARCHAR(50) NULL AFTER vehicle_number;" 2>/dev/null
+# Helper to run SQL one by one (to avoid stopping on errors if column already exists)
+run_sql() {
+    sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "$1" 2>/dev/null
+}
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS license_number VARCHAR(50) NULL AFTER vehicle_type;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN license_number VARCHAR(50) NULL AFTER vehicle_type;" 2>/dev/null
+echo "Adding vehicle_type..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN vehicle_type VARCHAR(50) NULL AFTER vehicle_number;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS rating DECIMAL(3, 2) DEFAULT 5.0 AFTER license_number;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN rating DECIMAL(3, 2) DEFAULT 5.0 AFTER license_number;" 2>/dev/null
+echo "Adding license_number..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN license_number VARCHAR(50) NULL AFTER vehicle_type;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(500) NULL AFTER rating;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN profile_photo VARCHAR(500) NULL AFTER rating;" 2>/dev/null
+echo "Adding rating..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN rating DECIMAL(3, 2) DEFAULT 5.0 AFTER license_number;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE AFTER is_active;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN is_online BOOLEAN DEFAULT FALSE AFTER is_active;" 2>/dev/null
+echo "Adding profile_photo..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN profile_photo VARCHAR(500) NULL AFTER rating;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS is_registered BOOLEAN DEFAULT FALSE AFTER is_online;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN is_registered BOOLEAN DEFAULT FALSE AFTER is_online;" 2>/dev/null
+echo "Adding is_online..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN is_online BOOLEAN DEFAULT FALSE AFTER is_active;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS verification_status ENUM('pending', 'submitted', 'under_review', 'approved', 'rejected') DEFAULT 'pending' AFTER is_registered;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN verification_status ENUM('pending', 'submitted', 'under_review', 'approved', 'rejected') DEFAULT 'pending' AFTER is_registered;" 2>/dev/null
+echo "Adding is_registered..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN is_registered BOOLEAN DEFAULT FALSE AFTER is_online;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS verification_notes TEXT NULL AFTER verification_status;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN verification_notes TEXT NULL AFTER verification_status;" 2>/dev/null
+echo "Adding verification_status..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN verification_status ENUM('pending', 'submitted', 'under_review', 'approved', 'rejected') DEFAULT 'pending' AFTER is_registered;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS last_online_at DATETIME NULL AFTER verification_notes;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN last_online_at DATETIME NULL AFTER verification_notes;" 2>/dev/null
+echo "Adding verification_notes..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN verification_notes TEXT NULL AFTER verification_status;"
 
-sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "
-ALTER TABLE delivery_partners ADD COLUMN IF NOT EXISTS last_offline_at DATETIME NULL AFTER last_online_at;
-" 2>/dev/null || sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "ALTER TABLE delivery_partners ADD COLUMN last_offline_at DATETIME NULL AFTER last_online_at;" 2>/dev/null
+echo "Adding last_online_at..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN last_online_at DATETIME NULL AFTER verification_notes;"
 
-echo "✅ All columns added!"
+echo "Adding last_offline_at..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN last_offline_at DATETIME NULL AFTER last_online_at;"
+
+echo "Adding latitude..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN latitude DECIMAL(10, 8) NULL AFTER last_offline_at;"
+
+echo "Adding longitude..."
+run_sql "ALTER TABLE delivery_partners ADD COLUMN longitude DECIMAL(11, 8) NULL AFTER latitude;"
+
+echo "✅ All columns checked/added!"
 echo ""
 echo "📊 Verifying table structure..."
 sudo docker exec fastfoodie_mysql mysql -u root -prootpassword fastfoodie -e "DESCRIBE delivery_partners;"
@@ -55,7 +56,7 @@ cd ~/fastfoodie-backend && sudo docker-compose restart api
 
 echo ""
 echo "⏳ Waiting for API to start..."
-sleep 10
+sleep 5
 
 echo ""
 echo "🧪 Testing endpoint..."
