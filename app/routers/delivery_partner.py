@@ -678,6 +678,60 @@ async def accept_order_for_delivery(
     )
 
 
+@router.post("/orders/{order_id}/cancel", response_model=APIResponse)
+async def cancel_order_delivery(
+    order_id: int,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel/Reject an order assigned to the delivery partner.
+    The order will be released and made available for other partners.
+    Order can only be cancelled if it hasn't been PICKED_UP yet.
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    
+    if order.delivery_partner_id != current_delivery_partner.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This order is not assigned to you"
+        )
+    
+    if order.status == OrderStatusEnum.PICKED_UP:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot cancel order after it has been picked up"
+        )
+    
+    # Release the order
+    order.delivery_partner_id = None
+    
+    db.commit()
+    db.refresh(order)
+    
+    # Notify restaurant that delivery partner has released the order
+    restaurant = db.query(Restaurant).filter(Restaurant.id == order.restaurant_id).first()
+    await NotificationService.send_order_update(
+        db=db,
+        order_id=order.id,
+        status="partner_released",
+        customer_id=order.customer_id,
+        owner_id=restaurant.owner_id if restaurant else None
+    )
+    
+    return APIResponse(
+        success=True,
+        message="Order released successfully. Other partners can now accept it.",
+        data={"order_id": order.id, "status": order.status.value}
+    )
+
+
 @router.post("/orders/{order_id}/complete", response_model=APIResponse)
 async def mark_order_as_delivered(
     order_id: int,
