@@ -61,10 +61,10 @@ def get_new_orders(
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Get all new orders"""
+    """Get all pending orders waiting for restaurant acceptance"""
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
-        Order.status == OrderStatusEnum.NEW
+        Order.status == OrderStatusEnum.PENDING
     ).order_by(Order.created_at.desc()).all()
     
     return APIResponse(
@@ -81,14 +81,13 @@ def get_ongoing_orders(
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Get all ongoing orders"""
+    """Get all ongoing orders (accepted, preparing, ready)"""
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
         Order.status.in_([
             OrderStatusEnum.ACCEPTED,
             OrderStatusEnum.PREPARING,
-            OrderStatusEnum.READY,
-            OrderStatusEnum.PICKED_UP
+            OrderStatusEnum.READY
         ])
     ).order_by(Order.created_at.desc()).all()
     
@@ -106,10 +105,11 @@ def get_completed_orders(
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Get all completed orders"""
+    """Get all completed orders (handed over, delivered, rejected, cancelled)"""
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
         Order.status.in_([
+            OrderStatusEnum.HANDED_OVER,
             OrderStatusEnum.DELIVERED,
             OrderStatusEnum.REJECTED,
             OrderStatusEnum.CANCELLED
@@ -265,19 +265,19 @@ async def delivered_order(
     )
 
 
-@router.put("/{order_id}/release", response_model=APIResponse)
-async def release_order(
+@router.put("/{order_id}/handover", response_model=APIResponse)
+async def handover_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as released from restaurant"""
+    """Mark order as handed over to delivery partner (Step 4: Restaurant Done)"""
     return await update_order_status_helper(
         order_id, 
-        OrderStatusEnum.RELEASED, 
+        OrderStatusEnum.HANDED_OVER, 
         restaurant.id, 
         db, 
-        "released_at"
+        "handed_over_at"
     )
 
 
@@ -475,13 +475,15 @@ async def broadcast_new_order(restaurant_id: int, order: Order, event_type: str 
     """
     if not event_type:
         status_to_event = {
-            OrderStatusEnum.NEW: "new_order",
+            OrderStatusEnum.PENDING: "new_order",
             OrderStatusEnum.ACCEPTED: "order_accepted",
             OrderStatusEnum.PREPARING: "preparing",
             OrderStatusEnum.READY: "ready",
+            OrderStatusEnum.HANDED_OVER: "handed_over",
+            OrderStatusEnum.ASSIGNED: "delivery_assigned",
+            OrderStatusEnum.REACHED_RESTAURANT: "delivery_reached",
             OrderStatusEnum.PICKED_UP: "pickedup",
             OrderStatusEnum.DELIVERED: "delivered",
-            OrderStatusEnum.RELEASED: "order_released",
             OrderStatusEnum.REJECTED: "order_rejected",
             OrderStatusEnum.CANCELLED: "order_cancelled"
         }

@@ -23,15 +23,27 @@ class RestaurantTypeEnum(str, enum.Enum):
 
 
 class OrderStatusEnum(str, enum.Enum):
-    NEW = "new"
-    ACCEPTED = "accepted"
-    PREPARING = "preparing"
-    READY = "ready"
-    PICKED_UP = "picked_up"
-    DELIVERED = "delivered"
-    RELEASED = "released"
-    REJECTED = "rejected"
-    CANCELLED = "cancelled"
+    # Initial Status
+    PENDING = "pending"                           # Order created, waiting for restaurant
+    
+    # Restaurant Workflow Statuses
+    ACCEPTED = "accepted"                         # Step 1: Restaurant accepted order
+    PREPARING = "preparing"                       # Step 2: Restaurant is preparing food (with time update)
+    READY = "ready"                              # Step 3: Food is ready for pickup
+    HANDED_OVER = "handed_over"                  # Step 4: Restaurant handed over to delivery partner (Done for restaurant)
+    
+    # Delivery Partner Workflow Statuses
+    ASSIGNED = "assigned"                        # Step 1: Delivery partner assigned/accepted order
+    REACHED_RESTAURANT = "reached_restaurant"    # Step 2: Delivery partner reached hotel/restaurant
+    PICKED_UP = "picked_up"                      # Step 3: Order picked up from restaurant
+    DELIVERED = "delivered"                      # Step 4: Order delivered to customer (Done for delivery)
+    
+    # Terminal/Error Statuses
+    REJECTED = "rejected"                        # Restaurant rejected order
+    CANCELLED = "cancelled"                      # Order cancelled
+    
+    # Legacy status for backward compatibility (to be removed)
+    RELEASED = "released"                        # Deprecated - use HANDED_OVER instead
 
 
 class Owner(Base):
@@ -344,7 +356,7 @@ class Order(Base):
     customer_name = Column(String(255), nullable=False)
     customer_phone = Column(String(15), nullable=False)
     delivery_address = Column(Text, nullable=False)
-    status = Column(Enum(OrderStatusEnum), default=OrderStatusEnum.NEW)
+    status = Column(Enum(OrderStatusEnum), default=OrderStatusEnum.PENDING)
     total_amount = Column(DECIMAL(10, 2), nullable=False)
     delivery_fee = Column(DECIMAL(10, 2), default=0.0)
     tax_amount = Column(DECIMAL(10, 2), default=0.0)
@@ -353,12 +365,21 @@ class Order(Base):
     payment_status = Column(String(50), default="pending")
     special_instructions = Column(Text, nullable=True)
     estimated_delivery_time = Column(DateTime(timezone=True), nullable=True)
-    accepted_at = Column(DateTime(timezone=True), nullable=True)
-    preparing_at = Column(DateTime(timezone=True), nullable=True)
-    ready_at = Column(DateTime(timezone=True), nullable=True)
-    pickedup_at = Column(DateTime(timezone=True), nullable=True)
-    delivered_at = Column(DateTime(timezone=True), nullable=True)
-    released_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Restaurant workflow timestamps
+    accepted_at = Column(DateTime(timezone=True), nullable=True)           # When restaurant accepts
+    preparing_at = Column(DateTime(timezone=True), nullable=True)          # When restaurant starts preparing
+    ready_at = Column(DateTime(timezone=True), nullable=True)              # When food is ready
+    handed_over_at = Column(DateTime(timezone=True), nullable=True)        # When restaurant hands over to delivery
+    
+    # Delivery partner workflow timestamps
+    assigned_at = Column(DateTime(timezone=True), nullable=True)           # When delivery partner accepts
+    reached_restaurant_at = Column(DateTime(timezone=True), nullable=True) # When delivery partner reaches restaurant
+    pickedup_at = Column(DateTime(timezone=True), nullable=True)           # When delivery partner picks up order
+    delivered_at = Column(DateTime(timezone=True), nullable=True)          # When order is delivered
+    
+    # Legacy/other timestamps
+    released_at = Column(DateTime(timezone=True), nullable=True)           # Deprecated - use handed_over_at
     rejected_at = Column(DateTime(timezone=True), nullable=True)
     rejection_reason = Column(Text, nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)

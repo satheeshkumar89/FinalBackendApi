@@ -444,16 +444,12 @@ async def get_available_orders(
     db: Session = Depends(get_db)
 ):
     """
-    Get all orders that are available for delivery.
-    Available statuses: ACCEPTED, PREPARING, READY (Wait for pickup)
+    Get all orders that are ready for delivery pickup.
+    Available orders are in READY status and have no delivery partner assigned.
+    These are within 5km proximity of the delivery partner.
     """
     orders = db.query(Order).filter(
-        Order.status.in_([
-            OrderStatusEnum.NEW,
-            OrderStatusEnum.ACCEPTED,
-            OrderStatusEnum.PREPARING,
-            OrderStatusEnum.READY
-        ]),
+        Order.status == OrderStatusEnum.READY,
         Order.delivery_partner_id == None
     ).order_by(desc(Order.created_at)).all()
     
@@ -483,14 +479,13 @@ async def get_active_orders(
 ):
     """
     Get all active orders assigned to this delivery partner.
-    Statuses: ACCEPTED, PREPARING, READY (Assigned), PICKED_UP (Out for delivery)
+    Statuses: ASSIGNED (accepted), REACH ED_RESTAURANT (at hotel), PICKED_UP (on the way)
     """
     orders = db.query(Order).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
         Order.status.in_([
-            OrderStatusEnum.ACCEPTED,
-            OrderStatusEnum.PREPARING,
-            OrderStatusEnum.READY,
+            OrderStatusEnum.ASSIGNED,
+            OrderStatusEnum.REACHED_RESTAURANT,
             OrderStatusEnum.PICKED_UP
         ])
     ).order_by(desc(Order.created_at)).all()
@@ -621,8 +616,9 @@ async def accept_order_for_delivery(
     db: Session = Depends(get_db)
 ):
     """
-    Accept an order for delivery.
-    Order must be in READY status.
+    Step 1: Accept an order for delivery.
+    Order must be in READY status (food is ready for pickup).
+    This assigns the delivery partner and changes status to ASSIGNED.
     """
     order = db.query(Order).filter(Order.id == order_id).first()
     
@@ -632,10 +628,10 @@ async def accept_order_for_delivery(
             detail="Order not found"
         )
     
-    if order.status not in [OrderStatusEnum.NEW, OrderStatusEnum.ACCEPTED, OrderStatusEnum.PREPARING, OrderStatusEnum.READY]:
+    if order.status != OrderStatusEnum.READY:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order is not available for acceptance. Current status: {order.status.value}"
+            detail=f"Order is not ready for pickup. Current status: {order.status.value}"
         )
     
     if order.delivery_partner_id:
@@ -644,14 +640,10 @@ async def accept_order_for_delivery(
             detail="Order has already been accepted by another delivery partner"
         )
     
-    # Assign delivery partner
+    # Assign delivery partner and set status to ASSIGNED
     order.delivery_partner_id = current_delivery_partner.id
-    
-    # If order was READY, move it to PICKED_UP automatically
-    if order.status == OrderStatusEnum.READY:
-        order.status = OrderStatusEnum.PICKED_UP
-        order.pickedup_at = datetime.utcnow()
-    # Otherwise, it stays in its current status (ACCEPTED or PREPARING) until the restaurant marks it READY
+    order.status = OrderStatusEnum.ASSIGNED
+    order.assigned_at = datetime.utcnow()
     
     db.commit()
     db.refresh(order)
@@ -676,6 +668,148 @@ async def accept_order_for_delivery(
         message="Order accepted for delivery successfully",
         data={"order_id": order.id, "status": order.status.value}
     )
+
+
+@router.post("/orders/{order_id}/reached", response_model=APIResponse)
+async def mark_reached_restaurant(
+    order_id: int,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """
+    Step 2: Mark that delivery partner has reached the restaurant.
+    
+    Supports two flows:
+    1. Order in READY status (not yet assigned) - Will auto-assign to delivery partner
+    2. Order in ASSIGNED status - Normal flow after accept
+    
+    This allows delivery partners to reach the restaurant and accept the order in one step.
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    
+    # Handle different status scenarios
+    if order.status == OrderStatusEnum.READY:
+        # New flow: Delivery partner is at restaurant and accepting order
+        # Check if order is already assigned to someone else
+        if order.delivery_partner_id and order.delivery_partner_id != current_delivery_partner.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Order has already been accepted by another delivery partner"
+            )
+        
+        # Assign the delivery partner
+        order.delivery_partner_id = current_delivery_partner.id
+        order.assigned_at = datetime.utcnow()
+        
+    elif order.status == OrderStatusEnum.ASSIGNED:
+        # Existing flow: Partner already accepted, now reached restaurant
+        if order.delivery_partner_id != current_delivery_partner.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This order is not assigned to you"
+            )
+    else:
+        # Invalid status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot mark reached from current status: {order.status.value}. Order must be READY or ASSIGNED."
+        )
+    
+    # Update status to REACHED_RESTAURANT
+    order.status = OrderStatusEnum.REACHED_RESTAURANT
+    order.reached_restaurant_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(order)
+    
+    # Send notifications
+    restaurant = db.query(Restaurant).filter(Restaurant.id == order.restaurant_id).first()
+    await NotificationService.send_order_update(
+        db=db,
+        order_id=order.id,
+        status="delivery_partner_reached",
+        customer_id=order.customer_id,
+        owner_id=restaurant.owner_id if restaurant else None,
+        delivery_partner_id=order.delivery_partner_id
+    )
+    
+    return APIResponse(
+        success=True,
+        message="Reached restaurant successfully",
+        data={"order_id": order.id, "status": order.status.value}
+    )
+
+
+@router.post("/orders/{order_id}/pickup", response_model=APIResponse)
+async def mark_order_picked_up(
+    order_id: int,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """
+    Step 3: Mark order as picked up from restaurant.
+    Order must be in REACHED_RESTAURANT status.
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    
+    if order.delivery_partner_id != current_delivery_partner.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This order is not assigned to you"
+        )
+    
+    if order.status != OrderStatusEnum.REACHED_RESTAURANT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid order status. Current status: {order.status.value}"
+        )
+    
+    # Update status to PICKED_UP
+    order.status = OrderStatusEnum.PICKED_UP
+    order.pickedup_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(order)
+    
+    # Send notifications
+    restaurant = db.query(Restaurant).filter(Restaurant.id == order.restaurant_id).first()
+    await NotificationService.send_order_update(
+        db=db,
+        order_id=order.id,
+        status="order_picked_up",
+        customer_id=order.customer_id,
+        owner_id=restaurant.owner_id if restaurant else None,
+        delivery_partner_id=order.delivery_partner_id
+    )
+    
+    return APIResponse(
+        success=True,
+        message="Order picked up successfully",
+        data={"order_id": order.id, "status": order.status.value}
+    )
+
+
+# Alias endpoint for backward compatibility
+@router.post("/orders/{order_id}/picked-up", response_model=APIResponse)
+async def mark_order_picked_up_alias(
+    order_id: int,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Alias for /pickup endpoint - for backward compatibility."""
+    return await mark_order_picked_up(order_id, current_delivery_partner, db)
 
 
 @router.post("/orders/{order_id}/cancel", response_model=APIResponse)
@@ -739,7 +873,7 @@ async def mark_order_as_delivered(
     db: Session = Depends(get_db)
 ):
     """
-    Mark order as delivered.
+    Step 4: Mark order as delivered (Final step - Delivery Partner Done).
     Order must be in PICKED_UP status and assigned to this delivery partner.
     """
     order = db.query(Order).filter(Order.id == order_id).first()

@@ -34,23 +34,22 @@ class DashboardService:
             )
         ).scalar() or Decimal('0.00')
         
-        # New orders count
+        # Pending orders count (awaiting restaurant acceptance)
         new_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.NEW
+                Order.status == OrderStatusEnum.PENDING
             )
         ).scalar() or 0
         
-        # Ongoing orders count
+        # Ongoing orders count (accepted, preparing, ready - restaurant's active orders)
         ongoing_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
                 Order.status.in_([
                     OrderStatusEnum.ACCEPTED,
                     OrderStatusEnum.PREPARING,
-                    OrderStatusEnum.READY,
-                    OrderStatusEnum.PICKED_UP
+                    OrderStatusEnum.READY
                 ])
             )
         ).scalar() or 0
@@ -154,23 +153,22 @@ class DashboardService:
             )
         ).scalar() or 0
         
-        # New orders count (current)
+        # Pending orders count (current)
         new_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.NEW
+                Order.status == OrderStatusEnum.PENDING
             )
         ).scalar() or 0
         
-        # Ongoing orders count (current)
+        # Ongoing orders count (current - restaurant's active orders)
         ongoing_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
                 Order.status.in_([
                     OrderStatusEnum.ACCEPTED,
                     OrderStatusEnum.PREPARING,
-                    OrderStatusEnum.READY,
-                    OrderStatusEnum.PICKED_UP
+                    OrderStatusEnum.READY
                 ])
             )
         ).scalar() or 0
