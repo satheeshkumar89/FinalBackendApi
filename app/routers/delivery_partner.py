@@ -488,7 +488,10 @@ async def get_active_orders(
             OrderStatusEnum.ASSIGNED.value,
             OrderStatusEnum.REACHED_RESTAURANT.value,
             OrderStatusEnum.PICKED_UP.value,
-            OrderStatusEnum.HANDED_OVER.value
+            OrderStatusEnum.HANDED_OVER.value,
+            OrderStatusEnum.ACCEPTED.value,
+            OrderStatusEnum.PREPARING.value,
+            OrderStatusEnum.READY.value
         ])
     ).order_by(desc(Order.created_at)).all()
     
