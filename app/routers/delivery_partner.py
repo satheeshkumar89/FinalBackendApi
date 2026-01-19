@@ -520,7 +520,7 @@ async def get_completed_orders(
     """
     orders = db.query(Order).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.DELIVERED
+        Order.status == OrderStatusEnum.DELIVERED.value
     ).order_by(desc(Order.delivered_at)).limit(limit).all()
     
     result = []
@@ -628,7 +628,7 @@ async def accept_order_for_delivery(
             detail="Order not found"
         )
     
-    if order.status not in [OrderStatusEnum.READY, OrderStatusEnum.HANDED_OVER]:
+    if order.status not in [OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order is not ready for pickup. Current status: {order.status}"
@@ -694,7 +694,7 @@ async def mark_reached_restaurant(
         )
     
     # Handle different status scenarios
-    if order.status in [OrderStatusEnum.READY, OrderStatusEnum.HANDED_OVER]:
+    if order.status in [OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value]:
         # New flow: Delivery partner is at restaurant and accepting order
         # Check if order is already assigned to someone else
         if order.delivery_partner_id and order.delivery_partner_id != current_delivery_partner.id:
@@ -707,7 +707,7 @@ async def mark_reached_restaurant(
         order.delivery_partner_id = current_delivery_partner.id
         order.assigned_at = datetime.utcnow()
         
-    elif order.status == OrderStatusEnum.ASSIGNED:
+    elif order.status == OrderStatusEnum.ASSIGNED.value:
         # Existing flow: Partner already accepted, now reached restaurant
         if order.delivery_partner_id != current_delivery_partner.id:
             raise HTTPException(
@@ -770,7 +770,7 @@ async def mark_order_picked_up(
             detail="This order is not assigned to you"
         )
     
-    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT, OrderStatusEnum.HANDED_OVER]:
+    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid order status. Current status: {order.status}"
@@ -837,7 +837,7 @@ async def cancel_order_delivery(
             detail="This order is not assigned to you"
         )
     
-    if order.status == OrderStatusEnum.PICKED_UP:
+    if order.status == OrderStatusEnum.PICKED_UP.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot cancel order after it has been picked up"
@@ -890,7 +890,7 @@ async def mark_order_as_delivered(
             detail="This order is not assigned to you"
         )
     
-    if order.status != OrderStatusEnum.PICKED_UP:
+    if order.status != OrderStatusEnum.PICKED_UP.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order is not out for delivery. Current status: {order.status}"
@@ -941,28 +941,28 @@ async def get_delivery_partner_earnings(
     # Today's earnings
     today_orders = db.query(func.sum(Order.delivery_fee)).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.DELIVERED,
+        Order.status == OrderStatusEnum.DELIVERED.value,
         Order.delivered_at >= today_start
     ).scalar() or Decimal("0.00")
     
     # Week's earnings
     week_orders = db.query(func.sum(Order.delivery_fee)).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.DELIVERED,
+        Order.status == OrderStatusEnum.DELIVERED.value,
         Order.delivered_at >= week_start
     ).scalar() or Decimal("0.00")
     
     # Month's earnings
     month_orders = db.query(func.sum(Order.delivery_fee)).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.DELIVERED,
+        Order.status == OrderStatusEnum.DELIVERED.value,
         Order.delivered_at >= month_start
     ).scalar() or Decimal("0.00")
     
     # Total deliveries
     total_deliveries = db.query(func.count(Order.id)).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
-        Order.status == OrderStatusEnum.DELIVERED
+        Order.status == OrderStatusEnum.DELIVERED.value
     ).scalar() or 0
     
     return EarningsResponse(

@@ -30,7 +30,7 @@ class DashboardService:
                 Order.restaurant_id == restaurant_id,
                 Order.created_at >= today_start,
                 Order.created_at < today_end,
-                Order.status == OrderStatusEnum.DELIVERED
+                Order.status == OrderStatusEnum.DELIVERED.value
             )
         ).scalar() or Decimal('0.00')
         
@@ -38,7 +38,7 @@ class DashboardService:
         new_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.PENDING
+                Order.status == OrderStatusEnum.PENDING.value
             )
         ).scalar() or 0
         
@@ -47,9 +47,9 @@ class DashboardService:
             and_(
                 Order.restaurant_id == restaurant_id,
                 Order.status.in_([
-                    OrderStatusEnum.ACCEPTED,
-                    OrderStatusEnum.PREPARING,
-                    OrderStatusEnum.READY
+                    OrderStatusEnum.ACCEPTED.value,
+                    OrderStatusEnum.PREPARING.value,
+                    OrderStatusEnum.READY.value
                 ])
             )
         ).scalar() or 0
@@ -125,7 +125,7 @@ class DashboardService:
         total_earnings = db.query(func.sum(Order.total_amount)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.DELIVERED
+                Order.status == OrderStatusEnum.DELIVERED.value
             )
         ).scalar() or Decimal('0.00')
         
@@ -133,7 +133,7 @@ class DashboardService:
         delivered_orders = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.DELIVERED
+                Order.status == OrderStatusEnum.DELIVERED.value
             )
         ).scalar() or 0
         
@@ -141,7 +141,7 @@ class DashboardService:
         rejected_orders = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.REJECTED
+                Order.status == OrderStatusEnum.REJECTED.value
             )
         ).scalar() or 0
         
@@ -149,7 +149,7 @@ class DashboardService:
         cancelled_orders = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.CANCELLED
+                Order.status == OrderStatusEnum.CANCELLED.value
             )
         ).scalar() or 0
         
@@ -157,7 +157,7 @@ class DashboardService:
         new_orders_count = db.query(func.count(Order.id)).filter(
             and_(
                 Order.restaurant_id == restaurant_id,
-                Order.status == OrderStatusEnum.PENDING
+                Order.status == OrderStatusEnum.PENDING.value
             )
         ).scalar() or 0
         
@@ -166,9 +166,9 @@ class DashboardService:
             and_(
                 Order.restaurant_id == restaurant_id,
                 Order.status.in_([
-                    OrderStatusEnum.ACCEPTED,
-                    OrderStatusEnum.PREPARING,
-                    OrderStatusEnum.READY
+                    OrderStatusEnum.ACCEPTED.value,
+                    OrderStatusEnum.PREPARING.value,
+                    OrderStatusEnum.READY.value
                 ])
             )
         ).scalar() or 0

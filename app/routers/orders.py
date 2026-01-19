@@ -87,7 +87,11 @@ def get_ongoing_orders(
         Order.status.in_([
             OrderStatusEnum.ACCEPTED.value,
             OrderStatusEnum.PREPARING.value,
-            OrderStatusEnum.READY.value
+            OrderStatusEnum.READY.value,
+            OrderStatusEnum.HANDED_OVER.value,
+            OrderStatusEnum.ASSIGNED.value,
+            OrderStatusEnum.REACHED_RESTAURANT.value,
+            OrderStatusEnum.PICKED_UP.value
         ])
     ).order_by(Order.created_at.desc()).all()
     
@@ -110,6 +114,9 @@ def get_completed_orders(
         Order.restaurant_id == restaurant.id,
         Order.status.in_([
             OrderStatusEnum.HANDED_OVER.value,
+            OrderStatusEnum.ASSIGNED.value,
+            OrderStatusEnum.REACHED_RESTAURANT.value,
+            OrderStatusEnum.PICKED_UP.value,
             OrderStatusEnum.DELIVERED.value,
             OrderStatusEnum.REJECTED.value,
             OrderStatusEnum.CANCELLED.value
