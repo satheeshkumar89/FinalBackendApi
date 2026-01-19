@@ -449,7 +449,7 @@ async def get_available_orders(
     These are within 5km proximity of the delivery partner.
     """
     orders = db.query(Order).filter(
-        Order.status == OrderStatusEnum.READY,
+        Order.status.in_([OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value]),
         Order.delivery_partner_id == None
     ).order_by(desc(Order.created_at)).all()
     
@@ -484,9 +484,9 @@ async def get_active_orders(
     orders = db.query(Order).filter(
         Order.delivery_partner_id == current_delivery_partner.id,
         Order.status.in_([
-            OrderStatusEnum.ASSIGNED,
-            OrderStatusEnum.REACHED_RESTAURANT,
-            OrderStatusEnum.PICKED_UP
+            OrderStatusEnum.ASSIGNED.value,
+            OrderStatusEnum.REACHED_RESTAURANT.value,
+            OrderStatusEnum.PICKED_UP.value
         ])
     ).order_by(desc(Order.created_at)).all()
     
