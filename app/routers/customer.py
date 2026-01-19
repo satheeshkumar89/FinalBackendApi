@@ -8,7 +8,7 @@ from app.schemas import (
     OrderCreateRequest, OrderResponse, OrderItemResponse, CustomerAddressCreate, CustomerAddressResponse,
     OrderTrackingResponse, OrderTrackingTimelineStep, DeliveryPartnerResponse
 )
-from app.models import Customer, Restaurant, Category, MenuItem, Review, Cart, CartItem, Order, OrderItem, Address, CustomerAddress, DeliveryPartner
+from app.models import Customer, Restaurant, Category, MenuItem, Review, Cart, CartItem, Order, OrderItem, Address, CustomerAddress, DeliveryPartner, OrderStatusEnum
 from app.dependencies import get_current_customer
 from typing import List
 from decimal import Decimal
@@ -363,7 +363,7 @@ async def create_order(
             customer_name=current_customer.full_name or "Guest",
             customer_phone=current_customer.phone_number,
             delivery_address=delivery_address_str,
-            status="new",
+            status=OrderStatusEnum.PENDING,
             total_amount=cart_totals.total_amount,
             delivery_fee=cart_totals.delivery_fee,
             tax_amount=cart_totals.tax_amount,
