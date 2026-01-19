@@ -363,7 +363,7 @@ async def create_order(
             customer_name=current_customer.full_name or "Guest",
             customer_phone=current_customer.phone_number,
             delivery_address=delivery_address_str,
-            status=OrderStatusEnum.PENDING,
+            status=OrderStatusEnum.PENDING.value,
             total_amount=cart_totals.total_amount,
             delivery_fee=cart_totals.delivery_fee,
             tax_amount=cart_totals.tax_amount,

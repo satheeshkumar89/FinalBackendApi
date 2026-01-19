@@ -64,7 +64,7 @@ def get_new_orders(
     """Get all pending orders waiting for restaurant acceptance"""
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
-        Order.status == OrderStatusEnum.PENDING
+        Order.status == OrderStatusEnum.PENDING.value
     ).order_by(Order.created_at.desc()).all()
     
     return APIResponse(
@@ -146,8 +146,8 @@ async def update_order_status_helper(
             detail="Order not found"
         )
     
-    # Update status
-    order.status = new_status
+    # Update status (ensure lowercase string for DB consistency)
+    order.status = new_status.value if hasattr(new_status, 'value') else str(new_status).lower()
     
     # Update timestamp if specified
     if timestamp_field:
@@ -475,17 +475,17 @@ async def broadcast_new_order(restaurant_id: int, order: Order, event_type: str 
     """
     if not event_type:
         status_to_event = {
-            OrderStatusEnum.PENDING: "new_order",
-            OrderStatusEnum.ACCEPTED: "order_accepted",
-            OrderStatusEnum.PREPARING: "preparing",
-            OrderStatusEnum.READY: "ready",
-            OrderStatusEnum.HANDED_OVER: "handed_over",
-            OrderStatusEnum.ASSIGNED: "delivery_assigned",
-            OrderStatusEnum.REACHED_RESTAURANT: "delivery_reached",
-            OrderStatusEnum.PICKED_UP: "pickedup",
-            OrderStatusEnum.DELIVERED: "delivered",
-            OrderStatusEnum.REJECTED: "order_rejected",
-            OrderStatusEnum.CANCELLED: "order_cancelled"
+            OrderStatusEnum.PENDING.value: "new_order",
+            OrderStatusEnum.ACCEPTED.value: "order_accepted",
+            OrderStatusEnum.PREPARING.value: "preparing",
+            OrderStatusEnum.READY.value: "ready",
+            OrderStatusEnum.HANDED_OVER.value: "handed_over",
+            OrderStatusEnum.ASSIGNED.value: "delivery_assigned",
+            OrderStatusEnum.REACHED_RESTAURANT.value: "delivery_reached",
+            OrderStatusEnum.PICKED_UP.value: "pickedup",
+            OrderStatusEnum.DELIVERED.value: "delivered",
+            OrderStatusEnum.REJECTED.value: "order_rejected",
+            OrderStatusEnum.CANCELLED.value: "order_cancelled"
         }
         event_type = status_to_event.get(order.status, "order_update")
 

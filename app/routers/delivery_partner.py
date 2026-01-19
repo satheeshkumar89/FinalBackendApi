@@ -642,7 +642,7 @@ async def accept_order_for_delivery(
     
     # Assign delivery partner and set status to ASSIGNED
     order.delivery_partner_id = current_delivery_partner.id
-    order.status = OrderStatusEnum.ASSIGNED
+    order.status = OrderStatusEnum.ASSIGNED.value
     order.assigned_at = datetime.utcnow()
     
     db.commit()
@@ -722,7 +722,7 @@ async def mark_reached_restaurant(
         )
     
     # Update status to REACHED_RESTAURANT
-    order.status = OrderStatusEnum.REACHED_RESTAURANT
+    order.status = OrderStatusEnum.REACHED_RESTAURANT.value
     order.reached_restaurant_at = datetime.utcnow()
     
     db.commit()
@@ -777,7 +777,7 @@ async def mark_order_picked_up(
         )
     
     # Update status to PICKED_UP
-    order.status = OrderStatusEnum.PICKED_UP
+    order.status = OrderStatusEnum.PICKED_UP.value
     order.pickedup_at = datetime.utcnow()
     
     db.commit()
@@ -897,7 +897,7 @@ async def mark_order_as_delivered(
         )
     
     # Update order status to DELIVERED
-    order.status = OrderStatusEnum.DELIVERED
+    order.status = OrderStatusEnum.DELIVERED.value
     order.delivered_at = datetime.utcnow()
     order.completed_at = datetime.utcnow()
     
