@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc
 from typing import List, Optional
 from datetime import datetime, timedelta
+from app.routers.orders import broadcast_new_order
 from decimal import Decimal
 import os
 
@@ -486,7 +487,8 @@ async def get_active_orders(
         Order.status.in_([
             OrderStatusEnum.ASSIGNED.value,
             OrderStatusEnum.REACHED_RESTAURANT.value,
-            OrderStatusEnum.PICKED_UP.value
+            OrderStatusEnum.PICKED_UP.value,
+            OrderStatusEnum.HANDED_OVER.value
         ])
     ).order_by(desc(Order.created_at)).all()
     
@@ -659,9 +661,8 @@ async def accept_order_for_delivery(
         delivery_partner_id=order.delivery_partner_id
     )
     
-    # Broadcast to Socket.IO
-    # order_data = OrderResponse.from_orm(order).dict()
-    # await emit_order_update(order_data, event_type="order_partner_assigned")
+    # Trigger Socket.IO broadcast for restaurant app
+    await broadcast_new_order(order.restaurant_id, order)
     
     return APIResponse(
         success=True,
@@ -739,6 +740,9 @@ async def mark_reached_restaurant(
         delivery_partner_id=order.delivery_partner_id
     )
     
+    # Trigger Socket.IO broadcast for restaurant app
+    await broadcast_new_order(order.restaurant_id, order)
+    
     return APIResponse(
         success=True,
         message="Reached restaurant successfully",
@@ -793,6 +797,8 @@ async def mark_order_picked_up(
         owner_id=restaurant.owner_id if restaurant else None,
         delivery_partner_id=order.delivery_partner_id
     )
+    # Trigger Socket.IO broadcast for restaurant app
+    await broadcast_new_order(order.restaurant_id, order)
     
     return APIResponse(
         success=True,
@@ -859,6 +865,9 @@ async def cancel_order_delivery(
         owner_id=restaurant.owner_id if restaurant else None
     )
     
+    # Trigger Socket.IO broadcast for restaurant app
+    await broadcast_new_order(order.restaurant_id, order)
+    
     return APIResponse(
         success=True,
         message="Order released successfully. Other partners can now accept it.",
@@ -915,9 +924,8 @@ async def mark_order_as_delivered(
         delivery_partner_id=order.delivery_partner_id
     )
     
-    # Broadcast to Socket.IO
-    # order_data = OrderResponse.from_orm(order).dict()
-    # await emit_order_update(order_data, event_type="order_delivered")
+    # Trigger Socket.IO broadcast for restaurant app
+    await broadcast_new_order(order.restaurant_id, order)
     
     return APIResponse(
         success=True,
