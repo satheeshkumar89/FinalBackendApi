@@ -464,7 +464,7 @@ async def get_available_orders(
             customer_phone=order.customer_phone,
             delivery_address=order.delivery_address,
             total_amount=order.total_amount,
-            status=order.status.value,
+            status=order.status,
             created_at=order.created_at,
             estimated_delivery_time=order.estimated_delivery_time
         ))
@@ -501,7 +501,7 @@ async def get_active_orders(
             customer_phone=order.customer_phone,
             delivery_address=order.delivery_address,
             total_amount=order.total_amount,
-            status=order.status.value,
+            status=order.status,
             created_at=order.created_at,
             estimated_delivery_time=order.estimated_delivery_time
         ))
@@ -534,7 +534,7 @@ async def get_completed_orders(
             customer_phone=order.customer_phone,
             delivery_address=order.delivery_address,
             total_amount=order.total_amount,
-            status=order.status.value,
+            status=order.status,
             created_at=order.created_at,
             estimated_delivery_time=order.estimated_delivery_time
         ))
@@ -597,7 +597,7 @@ async def get_order_details(
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
         delivery_address=order.delivery_address,
-        status=order.status.value,
+        status=order.status,
         total_amount=order.total_amount,
         delivery_fee=order.delivery_fee,
         payment_method=order.payment_method,
@@ -631,7 +631,7 @@ async def accept_order_for_delivery(
     if order.status != OrderStatusEnum.READY:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order is not ready for pickup. Current status: {order.status.value}"
+            detail=f"Order is not ready for pickup. Current status: {order.status}"
         )
     
     if order.delivery_partner_id:
@@ -653,7 +653,7 @@ async def accept_order_for_delivery(
     await NotificationService.send_order_update(
         db=db,
         order_id=order.id,
-        status=order.status.value,
+        status=order.status,
         customer_id=order.customer_id,
         owner_id=restaurant.owner_id if restaurant else None,
         delivery_partner_id=order.delivery_partner_id
@@ -666,7 +666,7 @@ async def accept_order_for_delivery(
     return APIResponse(
         success=True,
         message="Order accepted for delivery successfully",
-        data={"order_id": order.id, "status": order.status.value}
+        data={"order_id": order.id, "status": order.status}
     )
 
 
@@ -718,7 +718,7 @@ async def mark_reached_restaurant(
         # Invalid status
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot mark reached from current status: {order.status.value}. Order must be READY or ASSIGNED."
+            detail=f"Cannot mark reached from current status: {order.status}. Order must be READY or ASSIGNED."
         )
     
     # Update status to REACHED_RESTAURANT
@@ -742,7 +742,7 @@ async def mark_reached_restaurant(
     return APIResponse(
         success=True,
         message="Reached restaurant successfully",
-        data={"order_id": order.id, "status": order.status.value}
+        data={"order_id": order.id, "status": order.status}
     )
 
 
@@ -773,7 +773,7 @@ async def mark_order_picked_up(
     if order.status != OrderStatusEnum.REACHED_RESTAURANT:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid order status. Current status: {order.status.value}"
+            detail=f"Invalid order status. Current status: {order.status}"
         )
     
     # Update status to PICKED_UP
@@ -797,7 +797,7 @@ async def mark_order_picked_up(
     return APIResponse(
         success=True,
         message="Order picked up successfully",
-        data={"order_id": order.id, "status": order.status.value}
+        data={"order_id": order.id, "status": order.status}
     )
 
 
@@ -862,7 +862,7 @@ async def cancel_order_delivery(
     return APIResponse(
         success=True,
         message="Order released successfully. Other partners can now accept it.",
-        data={"order_id": order.id, "status": order.status.value}
+        data={"order_id": order.id, "status": order.status}
     )
 
 
@@ -893,7 +893,7 @@ async def mark_order_as_delivered(
     if order.status != OrderStatusEnum.PICKED_UP:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order is not out for delivery. Current status: {order.status.value}"
+            detail=f"Order is not out for delivery. Current status: {order.status}"
         )
     
     # Update order status to DELIVERED
@@ -922,7 +922,7 @@ async def mark_order_as_delivered(
     return APIResponse(
         success=True,
         message="Order marked as delivered successfully",
-        data={"order_id": order.id, "status": order.status.value}
+        data={"order_id": order.id, "status": order.status}
     )
 
 

@@ -89,7 +89,7 @@ class NotificationService:
             )
         
         # Notify nearby online delivery partners if order is available for pickup
-        if status in ["new", "accepted", "preparing", "ready"] and not delivery_partner_id:
+        if status in ["new", "accepted", "preparing", "ready", "handed_over"] and not delivery_partner_id:
             from app.models import DeliveryPartner, Order, Address
             import math
 

@@ -52,7 +52,7 @@ def map_to_order_summary(order: Order) -> dict:
         "total_amount": order.total_amount,
         "created_at": order.created_at,
         "payment_method": order.payment_method,
-        "status": order.status.value
+        "status": order.status
     }
 
 
@@ -366,7 +366,7 @@ def get_order_details(
         "customer_name": order.customer_name,
         "customer_phone": order.customer_phone,
         "delivery_address": order.delivery_address,
-        "status": order.status.value,
+        "status": order.status,
         "items": [OrderResponse.from_orm(order).items] if hasattr(OrderResponse.from_orm(order), 'items') else [item for item in order.items], # Use ORM relationship directly
         "special_instructions": order.special_instructions,
         "subtotal": subtotal,
