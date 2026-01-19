@@ -85,9 +85,9 @@ def get_ongoing_orders(
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
         Order.status.in_([
-            OrderStatusEnum.ACCEPTED,
-            OrderStatusEnum.PREPARING,
-            OrderStatusEnum.READY
+            OrderStatusEnum.ACCEPTED.value,
+            OrderStatusEnum.PREPARING.value,
+            OrderStatusEnum.READY.value
         ])
     ).order_by(Order.created_at.desc()).all()
     
@@ -109,10 +109,10 @@ def get_completed_orders(
     orders = db.query(Order).filter(
         Order.restaurant_id == restaurant.id,
         Order.status.in_([
-            OrderStatusEnum.HANDED_OVER,
-            OrderStatusEnum.DELIVERED,
-            OrderStatusEnum.REJECTED,
-            OrderStatusEnum.CANCELLED
+            OrderStatusEnum.HANDED_OVER.value,
+            OrderStatusEnum.DELIVERED.value,
+            OrderStatusEnum.REJECTED.value,
+            OrderStatusEnum.CANCELLED.value
         ])
     ).order_by(Order.created_at.desc()).limit(50).all()
     
