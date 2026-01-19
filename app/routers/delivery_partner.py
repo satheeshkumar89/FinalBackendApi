@@ -628,7 +628,7 @@ async def accept_order_for_delivery(
             detail="Order not found"
         )
     
-    if order.status != OrderStatusEnum.READY:
+    if order.status not in [OrderStatusEnum.READY, OrderStatusEnum.HANDED_OVER]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order is not ready for pickup. Current status: {order.status}"
@@ -694,7 +694,7 @@ async def mark_reached_restaurant(
         )
     
     # Handle different status scenarios
-    if order.status == OrderStatusEnum.READY:
+    if order.status in [OrderStatusEnum.READY, OrderStatusEnum.HANDED_OVER]:
         # New flow: Delivery partner is at restaurant and accepting order
         # Check if order is already assigned to someone else
         if order.delivery_partner_id and order.delivery_partner_id != current_delivery_partner.id:
@@ -718,7 +718,7 @@ async def mark_reached_restaurant(
         # Invalid status
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot mark reached from current status: {order.status}. Order must be READY or ASSIGNED."
+            detail=f"Cannot mark reached from current status: {order.status}. Order must be READY, HANDED_OVER or ASSIGNED."
         )
     
     # Update status to REACHED_RESTAURANT
@@ -770,7 +770,7 @@ async def mark_order_picked_up(
             detail="This order is not assigned to you"
         )
     
-    if order.status != OrderStatusEnum.REACHED_RESTAURANT:
+    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT, OrderStatusEnum.HANDED_OVER]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid order status. Current status: {order.status}"
