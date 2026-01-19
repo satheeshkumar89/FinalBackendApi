@@ -356,7 +356,7 @@ class Order(Base):
     customer_name = Column(String(255), nullable=False)
     customer_phone = Column(String(15), nullable=False)
     delivery_address = Column(Text, nullable=False)
-    status = Column(Enum(OrderStatusEnum), default=OrderStatusEnum.PENDING)
+    status = Column(Enum(OrderStatusEnum, values_callable=lambda x: [e.value for e in x]), default=OrderStatusEnum.PENDING)
     total_amount = Column(DECIMAL(10, 2), nullable=False)
     delivery_fee = Column(DECIMAL(10, 2), default=0.0)
     tax_amount = Column(DECIMAL(10, 2), default=0.0)
