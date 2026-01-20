@@ -645,9 +645,10 @@ async def accept_order_for_delivery(
             detail="Order has already been accepted by another delivery partner"
         )
     
-    # Assign delivery partner and set status to ASSIGNED
+    # Assign delivery partner and set status to ASSIGNED if not already handed over
     order.delivery_partner_id = current_delivery_partner.id
-    order.status = OrderStatusEnum.ASSIGNED.value
+    if order.status != OrderStatusEnum.HANDED_OVER.value:
+        order.status = OrderStatusEnum.ASSIGNED.value
     order.assigned_at = datetime.utcnow()
     
     db.commit()
@@ -777,10 +778,10 @@ async def mark_order_picked_up(
             detail="This order is not assigned to you"
         )
     
-    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value]:
+    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value, OrderStatusEnum.ASSIGNED.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid order status. Current status: {order.status}"
+            detail=f"Invalid order status. Current status: {order.status}. Order must be ASSIGNED, REACHED_RESTAURANT or HANDED_OVER."
         )
     
     # Update status to PICKED_UP
