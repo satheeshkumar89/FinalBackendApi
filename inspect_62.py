@@ -16,6 +16,7 @@ def inspect_order_62():
     d = req("/orders/62")
     data = d.get('data', {})
     print(f"Status: {data.get('status')}")
+    print(f"Restaurant ID: {data.get('restaurant_id')}")
     print(f"Delivery Partner ID: {data.get('delivery_partner_id')}")
     print(f"Delivery Partner Object: {data.get('delivery_partner')}")
     

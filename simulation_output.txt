@@ -1,0 +1,30 @@
+=== STARTING APP FLOW SIMULATION ===
+
+[STEP 1] Creating a new order...
+Cart Add Response: 200 {'success': True, 'message': 'Item added to cart', 'data': {'id': 2, 'restaurant_id': 1, 'restaurant_name': 'SatheeshTest', 'items': [{'id': 71, 'menu_item_id': 1, 'menu_item': {'id': 1, 'name': 'Chicken Biryani', 'description': 'Aromatic basmati rice cooked with tender chicken & traditional spices', 'price': '180.00', 'discount_price': '0.00', 'image_url': 'https://s3fullaccessdfd.s3.us-east-1.amazonaws.com/menu_item_image/20251223_143110_scaled_2df754e5-4cf4-454c-bb14-113d9adf02a73421772483912033831.jpg', 'category_id': 25, 'category': {'id': 25, 'name': 'Biryani', 'icon': None, 'is_active': True, 'display_order': 0}, 'is_vegetarian': False, 'is_available': True, 'is_bestseller': False, 'rating': '0.00', 'preparation_time': 30, 'created_at': '2025-12-23T14:31:13'}, 'quantity': 1, 'price': '180.00'}], 'item_total': '180.00', 'delivery_fee': '40.0', 'tax_amount': '9.0000', 'discount_amount': '0.0', 'total_amount': '229.0000'}}
+Cart content: {'success': True, 'message': 'Cart fetched successfully', 'data': {'id': 2, 'restaurant_id': 1, 'restaurant_name': 'SatheeshTest', 'items': [{'id': 71, 'menu_item_id': 1, 'menu_item': {'id': 1, 'name': 'Chicken Biryani', 'description': 'Aromatic basmati rice cooked with tender chicken & traditional spices', 'price': '180.00', 'discount_price': '0.00', 'image_url': 'https://s3fullaccessdfd.s3.us-east-1.amazonaws.com/menu_item_image/20251223_143110_scaled_2df754e5-4cf4-454c-bb14-113d9adf02a73421772483912033831.jpg', 'category_id': 25, 'category': {'id': 25, 'name': 'Biryani', 'icon': None, 'is_active': True, 'display_order': 0}, 'is_vegetarian': False, 'is_available': True, 'is_bestseller': False, 'rating': '0.00', 'preparation_time': 30, 'created_at': '2025-12-23T14:31:13'}, 'quantity': 1, 'price': '180.00'}], 'item_total': '180.00', 'delivery_fee': '40.0', 'tax_amount': '9.0000', 'discount_amount': '0.0', 'total_amount': '229.0000'}}
+✅ Order Created: #69
+
+[STEP 2] Restaurant Accepting & Marking Ready...
+Accept Response: 404
+Ready Response: 404
+✅ Order is now READY
+Restaurant Ongoing: {'success': True, 'message': 'Ongoing orders retrieved successfully', 'data': {'orders': [{'order_id': 64, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T12:31:57', 'payment_method': 'online', 'status': 'handed_over'}, {'order_id': 63, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T12:31:11', 'payment_method': 'online', 'status': 'handed_over'}, {'order_id': 62, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T12:18:40', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 61, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T11:55:19', 'payment_method': 'online', 'status': 'handed_over'}, {'order_id': 59, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T11:47:44', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 57, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T11:41:11', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 54, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T11:30:38', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 50, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T10:57:01', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 47, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T10:15:26', 'payment_method': 'cod', 'status': 'handed_over'}, {'order_id': 46, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T10:05:32', 'payment_method': 'cod', 'status': 'assigned'}, {'order_id': 45, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T10:03:47', 'payment_method': 'cod', 'status': 'assigned'}, {'order_id': 44, 'item_count': 5, 'total_amount': '1368.25', 'created_at': '2026-01-19T09:58:18', 'payment_method': 'cod', 'status': 'preparing'}, {'order_id': 42, 'item_count': 1, 'total_amount': '132.40', 'created_at': '2026-01-19T09:50:43', 'payment_method': 'COD', 'status': 'handed_over'}, {'order_id': 41, 'item_count': 1, 'total_amount': '190.15', 'created_at': '2026-01-19T09:41:08', 'payment_method': 'COD', 'status': 'handed_over'}, {'order_id': 40, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T09:35:01', 'payment_method': 'COD', 'status': 'handed_over'}, {'order_id': 38, 'item_count': 1, 'total_amount': '305.65', 'created_at': '2026-01-19T08:17:30', 'payment_method': 'online', 'status': 'handed_over'}, {'order_id': 29, 'item_count': 2, 'total_amount': '340.30', 'created_at': '2026-01-14T05:23:53', 'payment_method': 'COD', 'status': 'picked_up'}]}}
+
+[STEP 3] Delivery Partner checking Available Orders...
+❌ Order #69 NOT found in AVAILABLE list!
+Current Available: []
+
+[STEP 4] Restaurant marking Handed Over (unassigned)...
+Checking Available list again...
+❌ Order #69 DISAPPEARED from AVAILABLE list after Handover!
+
+[STEP 5] Delivery Partner Accepting Order...
+Checking Active list...
+❌ Order #69 NOT found in ACTIVE list!
+
+[STEP 6] Delivery Partner marking Picked Up...
+❌ Pickup failed: {"detail":"This order is not assigned to you"}
+
+[STEP 7] Completing Delivery...
+❌ Completion failed: {"detail":"This order is not assigned to you"}

@@ -18,3 +18,4 @@ firebase-admin==6.3.0
 alembic==1.13.0
 python-socketio==5.11.0
 aiofiles==23.2.1
+pytz==2024.1

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from app.routers.orders import broadcast_new_order
 from decimal import Decimal
 import os
+from app.utils.timezone import get_ist_now
 
 from app.database import get_db
 from app.models import (
@@ -343,9 +344,9 @@ async def toggle_online_status(
     
     # Update timestamps
     if status_data.is_online:
-        current_delivery_partner.last_online_at = datetime.utcnow()
+        current_delivery_partner.last_online_at = get_ist_now()
     else:
-        current_delivery_partner.last_offline_at = datetime.utcnow()
+        current_delivery_partner.last_offline_at = get_ist_now()
     
     db.commit()
     db.refresh(current_delivery_partner)
@@ -649,7 +650,7 @@ async def accept_order_for_delivery(
     order.delivery_partner_id = current_delivery_partner.id
     if order.status != OrderStatusEnum.HANDED_OVER.value:
         order.status = OrderStatusEnum.ASSIGNED.value
-    order.assigned_at = datetime.utcnow()
+    order.assigned_at = get_ist_now()
     
     db.commit()
     db.refresh(order)
@@ -710,7 +711,7 @@ async def mark_reached_restaurant(
         
         # Assign the delivery partner
         order.delivery_partner_id = current_delivery_partner.id
-        order.assigned_at = datetime.utcnow()
+        order.assigned_at = get_ist_now()
         
     elif order.status == OrderStatusEnum.ASSIGNED.value:
         # Existing flow: Partner already accepted, now reached restaurant
@@ -728,7 +729,7 @@ async def mark_reached_restaurant(
     
     # Update status to REACHED_RESTAURANT
     order.status = OrderStatusEnum.REACHED_RESTAURANT.value
-    order.reached_restaurant_at = datetime.utcnow()
+    order.reached_restaurant_at = get_ist_now()
     
     db.commit()
     db.refresh(order)
@@ -786,7 +787,7 @@ async def mark_order_picked_up(
     
     # Update status to PICKED_UP
     order.status = OrderStatusEnum.PICKED_UP.value
-    order.pickedup_at = datetime.utcnow()
+    order.pickedup_at = get_ist_now()
     
     db.commit()
     db.refresh(order)
@@ -911,8 +912,8 @@ async def mark_order_as_delivered(
     
     # Update order status to DELIVERED
     order.status = OrderStatusEnum.DELIVERED.value
-    order.delivered_at = datetime.utcnow()
-    order.completed_at = datetime.utcnow()
+    order.delivered_at = get_ist_now()
+    order.completed_at = get_ist_now()
     
     db.commit()
     db.refresh(order)
@@ -945,7 +946,7 @@ async def get_delivery_partner_earnings(
     db: Session = Depends(get_db)
 ):
     """Get earnings statistics for the delivery partner."""
-    now = datetime.utcnow()
+    now = get_ist_now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=now.weekday())
     month_start = today_start.replace(day=1)
@@ -1074,7 +1075,7 @@ async def update_delivery_partner_location(
             data={
                 "latitude": location_data.latitude,
                 "longitude": location_data.longitude,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": get_ist_now().isoformat()
             }
         )
     except Exception as e:
@@ -1086,7 +1087,7 @@ async def update_delivery_partner_location(
             data={
                 "latitude": location_data.latitude,
                 "longitude": location_data.longitude,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": get_ist_now().isoformat(),
                 "note": "Location tracking table will be created in next migration"
             }
         )

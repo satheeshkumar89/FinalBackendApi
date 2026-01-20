@@ -6,6 +6,7 @@ from app.database import get_db
 from app.dependencies import get_current_restaurant
 from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse
 from app.models import Restaurant, Order, OrderStatusEnum
+from app.utils.timezone import get_ist_now
 # from app.socket_manager import emit_order_update
 import json
 
@@ -158,11 +159,11 @@ async def update_order_status_helper(
     
     # Update timestamp if specified
     if timestamp_field:
-        setattr(order, timestamp_field, datetime.utcnow())
+        setattr(order, timestamp_field, get_ist_now())
         
     # Special case for delivered
     if new_status == OrderStatusEnum.DELIVERED:
-        order.completed_at = datetime.utcnow()
+        order.completed_at = get_ist_now()
         
     db.commit()
     db.refresh(order)
@@ -309,7 +310,7 @@ async def reject_order(
             )
         
         order.status = OrderStatusEnum.REJECTED
-        order.rejected_at = datetime.utcnow()
+        order.rejected_at = get_ist_now()
         order.rejection_reason = status_update.rejection_reason
         db.commit()
         db.refresh(order)
