@@ -11,12 +11,13 @@ from app.utils.timezone import get_ist_now
 from app.database import get_db
 from app.models import (
     DeliveryPartner, Order, OrderStatusEnum, Customer, Restaurant,
-    OrderItem, MenuItem, OTP, DeviceToken, Notification
+    OrderItem, MenuItem, OTP, DeviceToken, Notification, CustomerLocation
 )
 from app.schemas import (
     CustomerCreate, APIResponse, DeliveryPartnerResponse,
     OrderResponse, OrderItemResponse, RestaurantResponse,
-    DeviceTokenCreate, NotificationResponse, SendOTPRequest, VerifyOTPRequest
+    DeviceTokenCreate, NotificationResponse, SendOTPRequest, VerifyOTPRequest,
+    CustomerLocationResponse
 )
 from app.services.otp_service import create_otp, verify_otp, send_otp_sms
 from app.services.jwt_service import create_access_token
@@ -1135,5 +1136,46 @@ async def get_current_location(
         return APIResponse(
             success=True,
             message="Location tracking not yet initialized",
+            data=None
+        )
+
+
+@router.get("/orders/{order_id}/customer-location", response_model=APIResponse)
+async def get_customer_location(
+    order_id: int,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """
+    Get customer's latest real-time location for an active order.
+    Used by the delivery partner to find the exact location of the customer.
+    """
+    # 1. Verify order is assigned to this delivery partner
+    order = db.query(Order).filter(
+        Order.id == order_id,
+        Order.delivery_partner_id == current_delivery_partner.id
+    ).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or not assigned to you")
+        
+    # 2. Get latest customer location for this order
+    latest_location = db.query(CustomerLocation).filter(
+        CustomerLocation.order_id == order_id
+    ).order_by(desc(CustomerLocation.created_at)).first()
+    
+    if latest_location:
+        return APIResponse(
+            success=True,
+            message="Customer real-time location retrieved",
+            data=CustomerLocationResponse.from_orm(latest_location).dict()
+        )
+    else:
+        # Fallback to the address provided in the order (this doesn't have real-time coordinates, 
+        # but in a real-world scenario we'd use the coordinates from when the order was placed)
+        # For now, if no real-time update exists, return a message
+        return APIResponse(
+            success=True,
+            message="No real-time location updates from customer yet",
             data=None
         )

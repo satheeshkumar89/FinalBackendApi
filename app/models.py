@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
+from app.models_location import CustomerLocation, DeliveryPartnerLocation
+
 
 
 class VerificationStatusEnum(str, enum.Enum):

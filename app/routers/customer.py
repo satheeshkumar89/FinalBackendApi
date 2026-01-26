@@ -6,13 +6,15 @@ from app.schemas import (
     CategoryResponse, AddressResponse, CuisineResponse, MenuItemResponse, 
     ReviewResponse, AddToCartRequest, UpdateCartItemRequest, CartResponse, CartItemResponse,
     OrderCreateRequest, OrderResponse, OrderItemResponse, CustomerAddressCreate, CustomerAddressResponse,
-    OrderTrackingResponse, OrderTrackingTimelineStep, DeliveryPartnerResponse
+    OrderTrackingResponse, OrderTrackingTimelineStep, DeliveryPartnerResponse,
+    CustomerLocationUpdate, CustomerLocationResponse
 )
-from app.models import Customer, Restaurant, Category, MenuItem, Review, Cart, CartItem, Order, OrderItem, Address, CustomerAddress, DeliveryPartner, OrderStatusEnum
+from app.models import Customer, Restaurant, Category, MenuItem, Review, Cart, CartItem, Order, OrderItem, Address, CustomerAddress, DeliveryPartner, OrderStatusEnum, CustomerLocation
 from app.dependencies import get_current_customer
 from typing import List
 from decimal import Decimal
 from datetime import datetime
+from app.utils.timezone import get_ist_now
 from app.services.notification_service import NotificationService
 
 
@@ -921,3 +923,61 @@ def track_delivery_partner_location(
                 "note": "Location tracking feature coming soon"
             }
         )
+
+
+@router.post("/orders/{order_id}/location", response_model=APIResponse)
+def update_order_realtime_location(
+    order_id: int,
+    location_data: CustomerLocationUpdate,
+    db: Session = Depends(get_db),
+    current_customer: Customer = Depends(get_current_customer)
+):
+    """
+    Update customer's real-time location for an active order.
+    Should be called periodically by the customer app when an order is active.
+    """
+    # 1. Verify order belongs to customer and is active
+    order = db.query(Order).filter(
+        Order.id == order_id,
+        Order.customer_id == current_customer.id
+    ).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    # Only allow updates for active orders
+    active_statuses = [
+        OrderStatusEnum.PENDING.value,
+        OrderStatusEnum.ACCEPTED.value,
+        OrderStatusEnum.PREPARING.value,
+        OrderStatusEnum.READY.value,
+        OrderStatusEnum.ASSIGNED.value,
+        OrderStatusEnum.REACHED_RESTAURANT.value,
+        OrderStatusEnum.PICKED_UP.value,
+        OrderStatusEnum.HANDED_OVER.value
+    ]
+    
+    if order.status not in active_statuses:
+        raise HTTPException(status_code=400, detail="Location updates only allowed for active orders")
+
+    # 2. Store real-time location
+    new_location = CustomerLocation(
+        customer_id=current_customer.id,
+        order_id=order_id,
+        latitude=location_data.latitude,
+        longitude=location_data.longitude,
+        address=location_data.address or order.delivery_address,
+        landmark=location_data.landmark
+    )
+    db.add(new_location)
+    db.commit()
+    
+    return APIResponse(
+        success=True,
+        message="Customer location updated",
+        data={
+            "latitude": location_data.latitude,
+            "longitude": location_data.longitude,
+            "timestamp": get_ist_now().isoformat()
+        }
+    )

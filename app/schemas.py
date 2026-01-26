@@ -62,6 +62,25 @@ class CustomerResponse(BaseModel):
         from_attributes = True
 
 
+class CustomerLocationUpdate(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    address: Optional[str] = None
+    landmark: Optional[str] = None
+
+
+class CustomerLocationResponse(BaseModel):
+    latitude: float
+    longitude: float
+    address: Optional[str]
+    landmark: Optional[str]
+    created_at: datetime
+    customer_name: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
 
 # ============= Restaurant Schemas =============
 class RestaurantCreate(BaseModel):

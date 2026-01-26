@@ -47,3 +47,7 @@ class CustomerLocation(Base):
     # Relationships
     customer = relationship("Customer")
     order = relationship("Order")
+
+    @property
+    def customer_name(self):
+        return self.customer.full_name if self.customer else None
