@@ -18,31 +18,31 @@ Check AWS Console to ensure your EC2 instance with IP `52.22.224.42` is running.
 
 ### 2. Test SSH connection
 ```bash
-ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ec2-user@52.22.224.42 "echo 'Connection successful'"
+ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ubuntu@3.7.242.199 "echo 'Connection successful'"
 ```
 
 ### 3. Pull latest code from GitHub
 ```bash
-ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ec2-user@52.22.224.42 "cd fastfoodie-backend && git pull origin main"
+ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ubuntu@3.7.242.199 "cd FinalBackendApi && git pull origin main"
 ```
 
 ### 4. Rebuild and restart Docker containers
 ```bash
-ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ec2-user@52.22.224.42 "cd fastfoodie-backend && sudo docker-compose down && sudo docker-compose up --build -d"
+ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ubuntu@3.7.242.199 "cd FinalBackendApi && sudo docker-compose down && sudo docker-compose up --build -d"
 ```
 
 ### 5. Check container status
 ```bash
-ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ec2-user@52.22.224.42 "sudo docker-compose -f ~/fastfoodie-backend/docker-compose.yml ps"
+ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ubuntu@3.7.242.199 "sudo docker-compose -f ~/FinalBackendApi/docker-compose.yml ps"
 ```
 
 ### 6. View application logs
 ```bash
-ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ec2-user@52.22.224.42 "sudo docker logs fastfoodie_api --tail 50"
+ssh -i "/Users/satheeshkumar/Downloads/dharaifood.pem" ubuntu@3.7.242.199 "sudo docker logs fastfoodie_api --tail 50"
 ```
 
 ### 7. Verify API is accessible
-Open browser and visit: `http://52.22.224.42:8000/docs`
+Open browser and visit: `http://3.7.242.199:8000/docs`
 
 ## Troubleshooting
 
