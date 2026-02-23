@@ -1,25 +1,20 @@
-import os
-import sys
-
-# Add the project root to sys.path
-sys.path.append(os.getcwd())
 
 from app.database import SessionLocal
-from app.models import Order, Restaurant
+from app.models import Order
+from datetime import datetime
 
-def check_orders_db():
+def check_orders():
     db = SessionLocal()
     try:
-        orders = db.query(Order).order_by(Order.id.desc()).limit(1).all()
-        for o in orders:
-            print(f"Order #{o.id}, Status: {o.status}, Restaurant ID: {o.restaurant_id}")
-            res = db.query(Restaurant).filter(Restaurant.id == o.restaurant_id).first()
-            if res:
-                print(f"Restaurant Name: {res.restaurant_name}")
-            else:
-                print("Restaurant NOT found in DB!")
+        order_count = db.query(Order).count()
+        print(f"Total Orders: {order_count}")
+        
+        latest_orders = db.query(Order).order_by(Order.created_at.desc()).limit(5).all()
+        for o in latest_orders:
+            print(f"Order #{o.id} | Status: {o.status} | Created: {o.created_at}")
+            
     finally:
         db.close()
 
 if __name__ == "__main__":
-    check_orders_db()
+    check_orders()
