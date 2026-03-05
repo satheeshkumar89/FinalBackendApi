@@ -225,7 +225,7 @@ async def update_order_status_helper(
     )
 
 
-@router.put("/{order_id}/accept", response_model=APIResponse)
+@router.post("/{order_id}/accept", response_model=APIResponse)
 async def accept_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -241,7 +241,7 @@ async def accept_order(
     )
 
 
-@router.put("/{order_id}/preparing", response_model=APIResponse)
+@router.post("/{order_id}/preparing", response_model=APIResponse)
 async def preparing_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -257,7 +257,7 @@ async def preparing_order(
     )
 
 
-@router.put("/{order_id}/ready", response_model=APIResponse)
+@router.post("/{order_id}/ready", response_model=APIResponse)
 async def ready_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -273,7 +273,7 @@ async def ready_order(
     )
 
 
-@router.put("/{order_id}/pickedup", response_model=APIResponse)
+@router.post("/{order_id}/pickedup", response_model=APIResponse)
 async def pickedup_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -289,7 +289,7 @@ async def pickedup_order(
     )
 
 
-@router.put("/{order_id}/delivered", response_model=APIResponse)
+@router.post("/{order_id}/delivered", response_model=APIResponse)
 async def delivered_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -305,7 +305,7 @@ async def delivered_order(
     )
 
 
-@router.put("/{order_id}/handover", response_model=APIResponse)
+@router.post("/{order_id}/handover", response_model=APIResponse)
 async def handover_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
