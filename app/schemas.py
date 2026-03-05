@@ -389,6 +389,11 @@ class OrderStatusUpdate(BaseModel):
     rejection_reason: Optional[str] = None
 
 
+class AcceptOrderRequest(BaseModel):
+    order_id: int
+    estimated_preparation_time: Optional[int] = None
+
+
 class OrderTimeline(BaseModel):
     created_at: datetime
     accepted_at: Optional[datetime] = None

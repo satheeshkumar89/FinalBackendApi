@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime
 from app.database import get_db
 from app.dependencies import get_current_restaurant
-from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse
+from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse, AcceptOrderRequest
 from app.models import Restaurant, Order, OrderStatusEnum
 from app.utils.timezone import get_ist_now
 # from app.socket_manager import emit_order_update
@@ -225,6 +225,22 @@ async def update_order_status_helper(
     )
 
 
+@router.post("/accept", response_model=APIResponse)
+async def accept_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Accept an order (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.ACCEPTED, 
+        restaurant.id, 
+        db, 
+        "accepted_at"
+    )
+
+
 @router.post("/{order_id}/accept", response_model=APIResponse)
 @router.put("/{order_id}/accept", response_model=APIResponse)
 async def accept_order(
@@ -239,6 +255,22 @@ async def accept_order(
         restaurant.id, 
         db, 
         "accepted_at"
+    )
+
+
+@router.post("/preparing", response_model=APIResponse)
+async def preparing_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Mark order as preparing (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.PREPARING, 
+        restaurant.id, 
+        db, 
+        "preparing_at"
     )
 
 
@@ -259,6 +291,22 @@ async def preparing_order(
     )
 
 
+@router.post("/ready", response_model=APIResponse)
+async def ready_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Mark order as ready (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.READY, 
+        restaurant.id, 
+        db, 
+        "ready_at"
+    )
+
+
 @router.post("/{order_id}/ready", response_model=APIResponse)
 @router.put("/{order_id}/ready", response_model=APIResponse)
 async def ready_order(
@@ -273,6 +321,22 @@ async def ready_order(
         restaurant.id, 
         db, 
         "ready_at"
+    )
+
+
+@router.post("/pickedup", response_model=APIResponse)
+async def pickedup_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Mark order as picked up (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.PICKED_UP, 
+        restaurant.id, 
+        db, 
+        "pickedup_at"
     )
 
 
@@ -293,6 +357,22 @@ async def pickedup_order(
     )
 
 
+@router.post("/delivered", response_model=APIResponse)
+async def delivered_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Mark order as delivered (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.DELIVERED, 
+        restaurant.id, 
+        db, 
+        "delivered_at"
+    )
+
+
 @router.post("/{order_id}/delivered", response_model=APIResponse)
 @router.put("/{order_id}/delivered", response_model=APIResponse)
 async def delivered_order(
@@ -307,6 +387,22 @@ async def delivered_order(
         restaurant.id, 
         db, 
         "delivered_at"
+    )
+
+
+@router.post("/handover", response_model=APIResponse)
+async def handover_order_json(
+    request: AcceptOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Mark order as handed over (ID in JSON body)"""
+    return await update_order_status_helper(
+        request.order_id, 
+        OrderStatusEnum.HANDED_OVER, 
+        restaurant.id, 
+        db, 
+        "handed_over_at"
     )
 
 
