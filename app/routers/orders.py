@@ -133,6 +133,38 @@ def get_completed_orders(
     )
 
 
+@router.get("/fetch", response_model=APIResponse)
+def fetch_orders(
+    status: str,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """
+    Unified endpoint to fetch orders by status.
+    Supported statuses: new, ongoing, completed
+    """
+    if status == "new":
+        return get_new_orders(restaurant, db)
+    elif status == "ongoing":
+        return get_ongoing_orders(restaurant, db)
+    elif status == "completed":
+        return get_completed_orders(restaurant, db)
+    else:
+        # Fallback for any other specific status strings your app might send
+        orders = db.query(Order).filter(
+            Order.restaurant_id == restaurant.id,
+            Order.status == status
+        ).order_by(Order.created_at.desc()).all()
+        
+        return APIResponse(
+            success=True,
+            message=f"Orders with status '{status}' retrieved successfully",
+            data={
+                "orders": [map_to_order_summary(order) for order in orders]
+            }
+        )
+
+
 from app.services.notification_service import NotificationService
 
 # Helper to handle status updates
