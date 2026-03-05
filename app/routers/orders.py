@@ -226,12 +226,13 @@ async def update_order_status_helper(
 
 
 @router.post("/accept", response_model=APIResponse)
+@router.put("/accept", response_model=APIResponse)
 async def accept_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Accept an order (ID in JSON body)"""
+    """Accept an order (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.ACCEPTED, 
@@ -259,12 +260,13 @@ async def accept_order(
 
 
 @router.post("/preparing", response_model=APIResponse)
+@router.put("/preparing", response_model=APIResponse)
 async def preparing_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as preparing (ID in JSON body)"""
+    """Mark order as preparing (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.PREPARING, 
@@ -292,12 +294,13 @@ async def preparing_order(
 
 
 @router.post("/ready", response_model=APIResponse)
+@router.put("/ready", response_model=APIResponse)
 async def ready_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as ready (ID in JSON body)"""
+    """Mark order as ready (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.READY, 
@@ -325,12 +328,13 @@ async def ready_order(
 
 
 @router.post("/pickedup", response_model=APIResponse)
+@router.put("/pickedup", response_model=APIResponse)
 async def pickedup_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as picked up (ID in JSON body)"""
+    """Mark order as picked up (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.PICKED_UP, 
@@ -358,12 +362,13 @@ async def pickedup_order(
 
 
 @router.post("/delivered", response_model=APIResponse)
+@router.put("/delivered", response_model=APIResponse)
 async def delivered_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as delivered (ID in JSON body)"""
+    """Mark order as delivered (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.DELIVERED, 
@@ -391,12 +396,13 @@ async def delivered_order(
 
 
 @router.post("/handover", response_model=APIResponse)
+@router.put("/handover", response_model=APIResponse)
 async def handover_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
     db: Session = Depends(get_db)
 ):
-    """Mark order as handed over (ID in JSON body)"""
+    """Mark order as handed over (ID in JSON body) - Supports POST and PUT"""
     return await update_order_status_helper(
         request.order_id, 
         OrderStatusEnum.HANDED_OVER, 
