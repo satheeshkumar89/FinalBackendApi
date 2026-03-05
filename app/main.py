@@ -49,18 +49,16 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Mount Socket.IO app
 # app.mount("/socket.io", sio_app)
 
-# Include routers
-app.include_router(auth.router)
-app.include_router(owner.router)
-app.include_router(restaurant.router)
-app.include_router(dashboard.router)
-app.include_router(menu.router)
-app.include_router(orders.router)
-app.include_router(admin.router)
-app.include_router(customer_auth.router)
-app.include_router(customer.router)
-app.include_router(notifications.router)
-app.include_router(delivery_partner.router)
+# Include routers (both root and versioned for backward compatibility)
+routers = [
+    auth.router, owner.router, restaurant.router, dashboard.router,
+    menu.router, orders.router, admin.router, customer_auth.router,
+    customer.router, notifications.router, delivery_partner.router
+]
+
+for router in routers:
+    app.include_router(router)
+    app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():
@@ -87,7 +85,7 @@ async def mock_upload(file_path: str, request: Request):
         return {
             "message": f"Successfully mock-uploaded {file_path}", 
             "status": "success", 
-            "url": f"https://dharaifooddelivery.in/uploads/{file_path}"
+            "url": f"https://dharaidelivery.online/uploads/{file_path}"
         }
     except Exception as e:
         return {"message": f"Failed to mock-upload: {str(e)}", "status": "error"}
