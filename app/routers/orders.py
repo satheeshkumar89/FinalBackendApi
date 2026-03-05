@@ -329,6 +329,8 @@ async def ready_order(
 
 @router.post("/pickedup", response_model=APIResponse)
 @router.put("/pickedup", response_model=APIResponse)
+@router.post("/picked_up", response_model=APIResponse)
+@router.put("/picked_up", response_model=APIResponse)
 async def pickedup_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -346,6 +348,8 @@ async def pickedup_order_json(
 
 @router.post("/{order_id}/pickedup", response_model=APIResponse)
 @router.put("/{order_id}/pickedup", response_model=APIResponse)
+@router.post("/{order_id}/picked_up", response_model=APIResponse)
+@router.put("/{order_id}/picked_up", response_model=APIResponse)
 async def pickedup_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -397,6 +401,8 @@ async def delivered_order(
 
 @router.post("/handover", response_model=APIResponse)
 @router.put("/handover", response_model=APIResponse)
+@router.post("/handed_over", response_model=APIResponse)
+@router.put("/handed_over", response_model=APIResponse)
 async def handover_order_json(
     request: AcceptOrderRequest,
     restaurant: Restaurant = Depends(get_current_restaurant),
@@ -414,6 +420,8 @@ async def handover_order_json(
 
 @router.post("/{order_id}/handover", response_model=APIResponse)
 @router.put("/{order_id}/handover", response_model=APIResponse)
+@router.post("/{order_id}/handed_over", response_model=APIResponse)
+@router.put("/{order_id}/handed_over", response_model=APIResponse)
 async def handover_order(
     order_id: int,
     restaurant: Restaurant = Depends(get_current_restaurant),
