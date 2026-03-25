@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime
 from app.database import get_db
 from app.dependencies import get_current_restaurant
-from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse, AcceptOrderRequest
+from app.schemas import OrderResponse, OrderStatusUpdate, APIResponse, OrderSummaryResponse, AcceptOrderRequest, RejectOrderRequest, CancelOrderRequest
 from app.models import Restaurant, Order, OrderStatusEnum
 from app.utils.timezone import get_ist_now
 # from app.socket_manager import emit_order_update
@@ -437,7 +437,19 @@ async def handover_order(
     )
 
 
+@router.post("/reject", response_model=APIResponse)
+@router.put("/reject", response_model=APIResponse)
+async def reject_order_json(
+    request: RejectOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Reject an order (ID and reason in JSON body)"""
+    return await reject_order(request.order_id, OrderStatusUpdate(status=OrderStatusEnum.REJECTED, rejection_reason=request.rejection_reason), restaurant, db)
+
+
 @router.post("/{order_id}/reject", response_model=APIResponse)
+@router.put("/{order_id}/reject", response_model=APIResponse)
 async def reject_order(
     order_id: int,
     status_update: OrderStatusUpdate,
@@ -474,11 +486,6 @@ async def reject_order(
         # Broadcast update
         await broadcast_new_order(restaurant.id, order)
         
-        # Broadcast to Socket.IO
-        # from app.schemas import OrderResponse
-        # order_data = OrderResponse.from_orm(order).dict()
-        # await emit_order_update(order_data, event_type="order_rejected")
-        
         return APIResponse(
             success=True,
             message="Order rejected successfully",
@@ -491,6 +498,68 @@ async def reject_order(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to reject order: {str(e)}"
+        )
+
+
+@router.post("/cancel", response_model=APIResponse)
+@router.put("/cancel", response_model=APIResponse)
+async def cancel_order_json(
+    request: CancelOrderRequest,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Cancel an order (ID and reason in JSON body)"""
+    return await cancel_order(request.order_id, restaurant, db)
+
+
+@router.post("/{order_id}/cancel", response_model=APIResponse)
+@router.put("/{order_id}/cancel", response_model=APIResponse)
+async def cancel_order(
+    order_id: int,
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Cancel an order"""
+    try:
+        order = db.query(Order).filter(
+            Order.id == order_id,
+            Order.restaurant_id == restaurant.id
+        ).first()
+        
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Order not found"
+            )
+        
+        order.status = OrderStatusEnum.CANCELLED
+        order.rejected_at = get_ist_now() # Use rejected_at as generic terminal stamp if cancelled_at not present
+        db.commit()
+        db.refresh(order)
+        
+        # Send notification to customer
+        await NotificationService.send_order_update(
+            db=db,
+            order_id=order.id,
+            status="cancelled",
+            customer_id=order.customer_id
+        )
+        
+        # Broadcast update
+        await broadcast_new_order(restaurant.id, order)
+        
+        return APIResponse(
+            success=True,
+            message="Order cancelled successfully",
+            data=OrderResponse.from_orm(order).dict()
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cancel order: {str(e)}"
         )
 
 

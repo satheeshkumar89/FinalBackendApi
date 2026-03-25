@@ -394,6 +394,16 @@ class AcceptOrderRequest(BaseModel):
     estimated_preparation_time: Optional[int] = None
 
 
+class RejectOrderRequest(BaseModel):
+    order_id: int
+    rejection_reason: Optional[str] = None
+
+
+class CancelOrderRequest(BaseModel):
+    order_id: int
+    cancel_reason: Optional[str] = None
+
+
 class OrderTimeline(BaseModel):
     created_at: datetime
     accepted_at: Optional[datetime] = None

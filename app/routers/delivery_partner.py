@@ -17,7 +17,7 @@ from app.schemas import (
     CustomerCreate, APIResponse, DeliveryPartnerResponse,
     OrderResponse, OrderItemResponse, RestaurantResponse,
     DeviceTokenCreate, NotificationResponse, SendOTPRequest, VerifyOTPRequest,
-    CustomerLocationResponse
+    CustomerLocationResponse, AcceptOrderRequest, RejectOrderRequest, CancelOrderRequest
 )
 from app.services.otp_service import create_otp, verify_otp, send_otp_sms
 from app.services.jwt_service import create_access_token
@@ -616,7 +616,19 @@ async def get_order_details(
     )
 
 
+@router.post("/orders/accept", response_model=APIResponse)
+@router.put("/orders/accept", response_model=APIResponse)
+async def accept_order_for_delivery_json(
+    request: AcceptOrderRequest,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Step 1: Accept an order for delivery (ID in JSON body)"""
+    return await accept_order_for_delivery(request.order_id, current_delivery_partner, db)
+
+
 @router.post("/orders/{order_id}/accept", response_model=APIResponse)
+@router.put("/orders/{order_id}/accept", response_model=APIResponse)
 async def accept_order_for_delivery(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
@@ -677,7 +689,23 @@ async def accept_order_for_delivery(
     )
 
 
+@router.post("/orders/reached", response_model=APIResponse)
+@router.put("/orders/reached", response_model=APIResponse)
+@router.post("/orders/reached_restaurant", response_model=APIResponse)
+@router.put("/orders/reached_restaurant", response_model=APIResponse)
+async def mark_reached_restaurant_json(
+    request: AcceptOrderRequest,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Step 2: Mark reached restaurant (ID in JSON body)"""
+    return await mark_reached_restaurant(request.order_id, current_delivery_partner, db)
+
+
 @router.post("/orders/{order_id}/reached", response_model=APIResponse)
+@router.put("/orders/{order_id}/reached", response_model=APIResponse)
+@router.post("/orders/{order_id}/reached_restaurant", response_model=APIResponse)
+@router.put("/orders/{order_id}/reached_restaurant", response_model=APIResponse)
 async def mark_reached_restaurant(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
@@ -756,7 +784,23 @@ async def mark_reached_restaurant(
     )
 
 
+@router.post("/orders/pickup", response_model=APIResponse)
+@router.put("/orders/pickup", response_model=APIResponse)
+@router.post("/orders/picked-up", response_model=APIResponse)
+@router.put("/orders/picked-up", response_model=APIResponse)
+@router.post("/orders/picked_up", response_model=APIResponse)
+@router.put("/orders/picked_up", response_model=APIResponse)
+async def mark_order_picked_up_json(
+    request: AcceptOrderRequest,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Step 3: Mark order picked up (ID in JSON body)"""
+    return await mark_order_picked_up(request.order_id, current_delivery_partner, db)
+
+
 @router.post("/orders/{order_id}/pickup", response_model=APIResponse)
+@router.put("/orders/{order_id}/pickup", response_model=APIResponse)
 async def mark_order_picked_up(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
@@ -815,6 +859,9 @@ async def mark_order_picked_up(
 
 # Alias endpoint for backward compatibility
 @router.post("/orders/{order_id}/picked-up", response_model=APIResponse)
+@router.put("/orders/{order_id}/picked-up", response_model=APIResponse)
+@router.post("/orders/{order_id}/picked_up", response_model=APIResponse)
+@router.put("/orders/{order_id}/picked_up", response_model=APIResponse)
 async def mark_order_picked_up_alias(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
@@ -824,7 +871,19 @@ async def mark_order_picked_up_alias(
     return await mark_order_picked_up(order_id, current_delivery_partner, db)
 
 
+@router.post("/orders/cancel", response_model=APIResponse)
+@router.put("/orders/cancel", response_model=APIResponse)
+async def cancel_order_delivery_json(
+    request: CancelOrderRequest,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Cancel order delivery (ID in JSON body)"""
+    return await cancel_order_delivery(request.order_id, current_delivery_partner, db)
+
+
 @router.post("/orders/{order_id}/cancel", response_model=APIResponse)
+@router.put("/orders/{order_id}/cancel", response_model=APIResponse)
 async def cancel_order_delivery(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
@@ -881,7 +940,23 @@ async def cancel_order_delivery(
     )
 
 
+@router.post("/orders/complete", response_model=APIResponse)
+@router.put("/orders/complete", response_model=APIResponse)
+@router.post("/orders/delivered", response_model=APIResponse)
+@router.put("/orders/delivered", response_model=APIResponse)
+async def mark_order_as_delivered_json(
+    request: AcceptOrderRequest,
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Step 4: Mark order delivered (ID in JSON body)"""
+    return await mark_order_as_delivered(request.order_id, current_delivery_partner, db)
+
+
 @router.post("/orders/{order_id}/complete", response_model=APIResponse)
+@router.put("/orders/{order_id}/complete", response_model=APIResponse)
+@router.post("/orders/{order_id}/delivered", response_model=APIResponse)
+@router.put("/orders/{order_id}/delivered", response_model=APIResponse)
 async def mark_order_as_delivered(
     order_id: int,
     current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
