@@ -113,12 +113,42 @@ class Restaurant(Base):
     
     # Relationships
     owner = relationship("Owner", back_populates="restaurants")
-    cuisines = relationship("RestaurantCuisine", back_populates="restaurant")
+    cuisines_rel = relationship("RestaurantCuisine", back_populates="restaurant")
     address = relationship("Address", back_populates="restaurant", uselist=False)
     documents = relationship("Document", back_populates="restaurant")
     menu_items = relationship("MenuItem", back_populates="restaurant")
     orders = relationship("Order", back_populates="restaurant")
     reviews = relationship("Review", back_populates="restaurant")
+
+    @property
+    def image_url(self):
+        """Standard image URL used for compatibility"""
+        for doc in self.documents:
+            if doc.document_type == 'restaurant_photo':
+                return doc.file_url
+        return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+
+    @property
+    def coverImage(self):
+        """Alias for image_url for UI consistency"""
+        return self.image_url
+
+    @property
+    def cuisines(self):
+        """Returns a simple list of cuisine names instead of complex objects"""
+        return [rc.cuisine.name for rc in self.cuisines_rel if rc.cuisine]
+    
+    @property
+    def isPureVeg(self):
+        """Check if all menu items are vegetarian"""
+        if not self.menu_items:
+            return False
+        return all(item.is_vegetarian for item in self.menu_items)
+
+    @property
+    def offer(self):
+        """Mock offer for UI demonstration"""
+        return "50% OFF up to ₹100"
 
 
 
@@ -158,7 +188,7 @@ class RestaurantCuisine(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    restaurant = relationship("Restaurant", back_populates="cuisines")
+    restaurant = relationship("Restaurant", back_populates="cuisines_rel")
     cuisine = relationship("Cuisine", back_populates="restaurants")
 
 

@@ -429,3 +429,150 @@ def get_all_delivery_partners(
         message=f"Found {len(partner_list)} delivery partners",
         data={"delivery_partners": partner_list}
     )
+
+
+# ============= Database Seeding APIs =============
+
+# List of predefined cuisines
+CUISINES = [
+    "North Indian", "South Indian", "Andhra", "Chettinad", "Kerala", "Tamil", "Hyderabadi", "Udupi",
+    "Bengali", "Assamese", "Oriya", "Rajasthani", "Gujarati", "Kashmiri", "Punjabi", "Maharashtrian",
+    "Goan", "Bihari", "Awadhi", "Lucknowi", "Mughlai", "Tandoor", "Kebab", "Grill", "Biryani",
+    "Chinese", "Asian", "Pan Asian", "Thai", "Korean", "Japanese", "Sushi", "Indo-Chinese",
+    "Vietnamese", "Singaporean", "Noodles", "Ramen", "Dumplings", "Momos", "Bakery", "Cakes",
+    "Pastries", "Desserts", "Ice Cream", "Waffles", "Brownies", "Cookies", "Cupcakes", "Shakes",
+    "Smoothies", "Juices", "Milkshakes", "Tea", "Coffee", "Beverages", "Mocktails", "Soda", "Lassi",
+    "Falooda", "Juice Bar", "Italian", "Pizza", "Pasta", "Risotto", "Garlic Bread", "Mexican",
+    "Tacos", "Burritos", "Nachos", "Quesadilla", "Continental", "European", "Mediterranean",
+    "Lebanese", "Turkish", "Greek", "Middle Eastern", "Shawarma", "Falafel", "American", "Fast Food",
+    "Burgers", "Hot Dogs", "Steak", "BBQ", "Barbecue", "Seafood", "Fish", "Prawns", "Crab",
+    "Sushi Seafoods", "Healthy Food", "Diet Food", "Protein Bowls", "Salads", "Keto", "Vegan",
+    "Vegetarian", "Pure Veg", "Satvik", "Organic Food", "Street Food", "Chaat", "Pani Puri",
+    "Vada Pav", "Dabeli", "Rolls", "Kathi Rolls", "Frankie", "Wraps", "Sandwiches", "Grilled Sandwich",
+    "Sub Sandwich", "Paratha", "Roti", "Rice Bowls", "Thali", "Combo Meals", "Meals", "Lunchbox",
+    "Home Food", "Homestyle", "Dosa", "Idli", "Vada", "Appam", "Pongal", "Poori", "Chapati Meals",
+    "Breakfast", "Brunch", "Snacks", "Quick Bites", "Bento Boxes", "Wings", "Fried Chicken",
+    "Popcorn Chicken", "Birria", "Soup", "Appetizers", "Starters", "Tiffins", "Halwa", "Gulab Jamun",
+    "Rasmalai", "Kheer", "Indian Sweets", "Mithai", "Laddoo", "Barfi", "Festival Specials",
+    "Diwali Sweets", "Ramzan Special", "Haleem", "Special Thali", "Seasonal Specials", "Chef Special",
+    "Family Pack", "Kids Menu", "Party Pack", "Large Meals", "Budget Meals", "Value Combos",
+    "Premium Cuisine", "Gourmet", "Fine Dining", "Cloud Kitchen", "Home Chef", "Local Favorites",
+    "Newly Added", "Trending", "Popular Nearby", "Exclusive", "Signature Items", "Recommended",
+    "Hot & Spicy", "Cold Drinks", "Tea Shop", "Coffee House", "Milk Bar", "Fresh Juice Shop",
+    "Desi Chinese", "Arabian", "African", "Fusion Food", "Global Fusion", "Street Chinese",
+    "Pasta House", "BBQ Nation Style", "Sizzlers", "Wrap House", "Bowl Meals", "Beverage Shop",
+    "Snack Bar", "Indian Chinese", "Non-Veg Starters", "Veg Starters", "Fried Snacks", "Pakoda",
+    "Bhajji", "Fresh Fruits", "Fruit Bowls"
+]
+
+
+def verify_admin_key(x_admin_key: str = Header(None)):
+    """Verify admin API key for protected endpoints"""
+    admin_key = os.getenv("ADMIN_API_KEY", "fastfoodie-admin-secret-key")
+    
+    if not x_admin_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-Admin-Key header"
+        )
+    
+    if x_admin_key != admin_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin key"
+        )
+
+
+@router.post("/seed-cuisines", response_model=APIResponse)
+def seed_cuisines(
+    db: Session = Depends(get_db),
+    admin_key: str = Depends(verify_admin_key)
+):
+    """
+    Seed the cuisines table with predefined cuisines.
+    
+    **Protected endpoint** - Requires X-Admin-Key header
+    
+    Usage:
+    ```bash
+    curl -X POST https://dharaidelivery.online/admin/seed-cuisines \\
+      -H "X-Admin-Key: fastfoodie-admin-secret-key"
+    ```
+    """
+    try:
+        existing_count = db.query(Cuisine).count()
+        
+        added_count = 0
+        skipped_count = 0
+        
+        for cuisine_name in CUISINES:
+            # Check if cuisine already exists
+            existing = db.query(Cuisine).filter(Cuisine.name == cuisine_name).first()
+            if existing:
+                skipped_count += 1
+                continue
+            
+            # Create new cuisine
+            cuisine = Cuisine(
+                name=cuisine_name,
+                is_active=True
+            )
+            db.add(cuisine)
+            added_count += 1
+        
+        db.commit()
+        
+        total_now = db.query(Cuisine).count()
+        
+        return APIResponse(
+            success=True,
+            message=f"Cuisines seeding completed",
+            data={
+                "previously_existed": existing_count,
+                "newly_added": added_count,
+                "skipped_duplicates": skipped_count,
+                "total_cuisines_now": total_now,
+                "expected_total": len(CUISINES)
+            }
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to seed cuisines: {str(e)}"
+        )
+
+
+@router.get("/seed-status", response_model=APIResponse)
+def get_seed_status(
+    db: Session = Depends(get_db),
+    admin_key: str = Depends(verify_admin_key)
+):
+    """
+    Check the current seeding status and cuisine count.
+    
+    **Protected endpoint** - Requires X-Admin-Key header
+    """
+    try:
+        cuisine_count = db.query(Cuisine).count()
+        active_count = db.query(Cuisine).filter(Cuisine.is_active == True).count()
+        
+        return APIResponse(
+            success=True,
+            message="Seed status retrieved",
+            data={
+                "total_cuisines": cuisine_count,
+                "active_cuisines": active_count,
+                "expected_total": len(CUISINES),
+                "fully_seeded": cuisine_count >= len(CUISINES),
+                "sample_cuisines": [
+                    {"id": c.id, "name": c.name}
+                    for c in db.query(Cuisine).limit(5).all()
+                ]
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check seed status: {str(e)}"
+        )

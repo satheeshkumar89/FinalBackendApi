@@ -55,9 +55,8 @@ def get_home_data(
     # Get categories
     categories = db.query(Category).filter(Category.is_active == True).order_by(Category.display_order).all()
     
-    # Get restaurants (simplified logic for now)
-    restaurants = db.query(Restaurant).filter(Restaurant.is_active == True, Restaurant.is_open == True).all()
-    
+    # Get restaurants (return all active to allow frontend to show 'Closed' state)
+    restaurants = db.query(Restaurant).filter(Restaurant.is_active == True).all()
     # Construct response
     data = {
         "categories": [CategoryResponse.from_orm(c).dict() for c in categories],
@@ -108,7 +107,7 @@ def get_restaurant_details(
         restaurant_data["address"] = None
         
     # Cuisines
-    restaurant_data["cuisines"] = [CuisineResponse.from_orm(rc.cuisine).dict() for rc in restaurant.cuisines]
+    restaurant_data["cuisines"] = [rc.cuisine.name for rc in restaurant.cuisines_rel if rc.cuisine]
     
     # Menu Items
     # Grouping logic can be done here or in frontend. For now, sending flat list.
@@ -144,7 +143,7 @@ def get_or_create_cart(db: Session, customer_id: int) -> Cart:
         db.refresh(cart)
     return cart
 
-def calculate_cart_totals(cart: Cart) -> CartResponse:
+def calculate_cart_totals(cart: Cart, db: Session = None, address_id: int = None) -> CartResponse:
     item_total = Decimal("0.0")
     items_response = []
     
@@ -163,8 +162,69 @@ def calculate_cart_totals(cart: Cart) -> CartResponse:
         )
         items_response.append(item_resp)
         
-    # Mock charges for now
-    delivery_fee = Decimal("40.0") if item_total > 0 else Decimal("0.0")
+    # Calculate distance-based delivery fee
+    distance_km = None
+    if db and cart.restaurant_id and cart.customer_id:
+        # Get restaurant coordinates
+        restaurant = db.query(Restaurant).filter(Restaurant.id == cart.restaurant_id).first()
+        if restaurant and restaurant.address and restaurant.address.latitude is not None and restaurant.address.longitude is not None:
+            r_lat = float(restaurant.address.latitude)
+            r_lng = float(restaurant.address.longitude)
+            
+            # Find customer coordinates
+            c_lat = None
+            c_lng = None
+            
+            if address_id:
+                addr = db.query(CustomerAddress).filter(
+                    CustomerAddress.id == address_id,
+                    CustomerAddress.customer_id == cart.customer_id
+                ).first()
+                if addr and addr.latitude is not None and addr.longitude is not None:
+                    c_lat = float(addr.latitude)
+                    c_lng = float(addr.longitude)
+            else:
+                addr = db.query(CustomerAddress).filter(
+                    CustomerAddress.customer_id == cart.customer_id,
+                    CustomerAddress.is_default == True
+                ).first()
+                if not addr:
+                    addr = db.query(CustomerAddress).filter(
+                        CustomerAddress.customer_id == cart.customer_id
+                    ).first()
+                
+                if addr and addr.latitude is not None and addr.longitude is not None:
+                    c_lat = float(addr.latitude)
+                    c_lng = float(addr.longitude)
+                else:
+                    # Fallback to latest CustomerLocation
+                    loc = db.query(CustomerLocation).filter(
+                        CustomerLocation.customer_id == cart.customer_id
+                    ).order_by(CustomerLocation.created_at.desc()).first()
+                    if loc and loc.latitude is not None and loc.longitude is not None:
+                        c_lat = float(loc.latitude)
+                        c_lng = float(loc.longitude)
+            
+            if c_lat is not None and c_lng is not None:
+                import math
+                dlat = math.radians(c_lat - r_lat)
+                dlon = math.radians(c_lng - r_lng)
+                a = math.sin(dlat / 2)**2 + math.cos(math.radians(r_lat)) * math.cos(math.radians(c_lat)) * math.sin(dlon / 2)**2
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                distance_km = 6371.0 * c
+
+    if item_total > 0:
+        if distance_km is None:
+            delivery_fee = Decimal("40.0")
+        elif distance_km < 3.0:
+            delivery_fee = Decimal("40.0")
+        else:
+            # 40 base + 7 per km above 3 km
+            extra_km = distance_km - 3.0
+            delivery_fee = Decimal("40.0") + Decimal(str(round(extra_km * 7.0, 2)))
+    else:
+        delivery_fee = Decimal("0.0")
+        
     tax_amount = item_total * Decimal("0.05") # 5% tax
     discount_amount = Decimal("0.0") # Placeholder for promo code
     
@@ -189,6 +249,11 @@ def add_to_cart(
     current_customer: Customer = Depends(get_current_customer)
 ):
     """Add item to cart"""
+    # Verify restaurant is open
+    restaurant = db.query(Restaurant).filter(Restaurant.id == request.restaurant_id).first()
+    if not restaurant or not restaurant.is_active or not restaurant.is_open:
+        raise HTTPException(status_code=400, detail="Restaurant is currently offline or unavailable")
+        
     cart = get_or_create_cart(db, current_customer.id)
     
     # Check if cart has items from another restaurant
@@ -224,7 +289,7 @@ def add_to_cart(
     return APIResponse(
         success=True,
         message="Item added to cart",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 @router.get("/cart", response_model=APIResponse)
@@ -237,7 +302,7 @@ def get_cart(
     return APIResponse(
         success=True,
         message="Cart fetched successfully",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 
@@ -261,7 +326,7 @@ def clear_cart(
     return APIResponse(
         success=True,
         message="Cart cleared successfully",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 @router.put("/cart/items/{item_id}", response_model=APIResponse)
@@ -292,7 +357,7 @@ def update_cart_item(
     return APIResponse(
         success=True,
         message="Cart updated",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 @router.delete("/cart/items/{item_id}", response_model=APIResponse)
@@ -316,7 +381,7 @@ def remove_cart_item(
     return APIResponse(
         success=True,
         message="Item removed from cart",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 # ============= Order Endpoints =============
@@ -342,6 +407,11 @@ async def create_order(
             
         if cart.restaurant_id != request.restaurant_id:
              raise HTTPException(status_code=400, detail="Cart restaurant mismatch")
+             
+        # Verify restaurant is still open
+        restaurant = db.query(Restaurant).filter(Restaurant.id == request.restaurant_id).first()
+        if not restaurant or not restaurant.is_active or not restaurant.is_open:
+            raise HTTPException(status_code=400, detail="Restaurant is currently offline and not accepting orders")
 
         # 2. Get Address
         address = db.query(CustomerAddress).filter(
@@ -355,7 +425,7 @@ async def create_order(
             delivery_address_str = f"{address.address_line_1}, {address.city}, {address.pincode}"
 
         # 3. Calculate Totals
-        cart_totals = calculate_cart_totals(cart)
+        cart_totals = calculate_cart_totals(cart, db, request.address_id)
         
         # 4. Create Order
         order = Order(
@@ -657,7 +727,7 @@ def repeat_order(
     return APIResponse(
         success=True,
         message="Items added to cart",
-        data=calculate_cart_totals(cart).dict()
+        data=calculate_cart_totals(cart, db).dict()
     )
 
 

@@ -246,8 +246,8 @@ def get_restaurant_details(
         restaurant_data["address"] = None
         
     # Safely handle Cuisines
-    if restaurant.cuisines:
-        restaurant_data["cuisines"] = [CuisineResponse.from_orm(rc.cuisine).dict() for rc in restaurant.cuisines if rc.cuisine]
+    if restaurant.cuisines_rel:
+        restaurant_data["cuisines"] = [rc.cuisine.name for rc in restaurant.cuisines_rel if rc.cuisine]
     else:
         restaurant_data["cuisines"] = []
         

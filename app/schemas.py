@@ -111,6 +111,13 @@ class RestaurantResponse(BaseModel):
 
     is_open: bool
     average_rating: Decimal
+    image_url: Optional[str] = None
+    coverImage: Optional[str] = None
+    cuisines: List[str] = []
+    deliveryTime: Optional[str] = "30-40 min"
+    distance: Optional[str] = "2.5 km"
+    offer: Optional[str] = "50% OFF up to ₹100"
+    isPureVeg: bool = False
     verification_status: str
     created_at: datetime
     
