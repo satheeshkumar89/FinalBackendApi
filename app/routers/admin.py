@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.schemas import APIResponse
-from app.models import Restaurant, VerificationStatusEnum
+from app.models import Restaurant, VerificationStatusEnum, Cuisine
 from app.services.verification_service import VerificationService
 from pydantic import BaseModel
 
