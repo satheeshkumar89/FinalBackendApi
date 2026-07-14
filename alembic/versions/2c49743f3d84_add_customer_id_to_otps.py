@@ -20,11 +20,28 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('otps', sa.Column('customer_id', sa.Integer(), nullable=True))
-    op.create_foreign_key('fk_otps_customer_id', 'otps', 'customers', ['customer_id'], ['id'])
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('otps')]
+    
+    if 'customer_id' not in columns:
+        op.add_column('otps', sa.Column('customer_id', sa.Integer(), nullable=True))
+        
+    fks = inspector.get_foreign_keys('otps')
+    fk_names = [fk['name'] for fk in fks]
+    if 'fk_otps_customer_id' not in fk_names:
+        op.create_foreign_key('fk_otps_customer_id', 'otps', 'customers', ['customer_id'], ['id'])
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_constraint('fk_otps_customer_id', 'otps', type_='foreignkey')
-    op.drop_column('otps', 'customer_id')
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('otps')]
+    
+    if 'customer_id' in columns:
+        fks = inspector.get_foreign_keys('otps')
+        fk_names = [fk['name'] for fk in fks]
+        if 'fk_otps_customer_id' in fk_names:
+            op.drop_constraint('fk_otps_customer_id', 'otps', type_='foreignkey')
+        op.drop_column('otps', 'customer_id')
