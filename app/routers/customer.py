@@ -219,9 +219,11 @@ def calculate_cart_totals(cart: Cart, db: Session = None, address_id: int = None
         elif distance_km < 3.0:
             delivery_fee = Decimal("40.0")
         else:
-            # 40 base + 7 per km above 3 km
+            # 40 base + 7 per km above 3 km, capped at MAX_DELIVERY_FEE (150.0)
+            MAX_DELIVERY_FEE = Decimal("150.0")
             extra_km = distance_km - 3.0
-            delivery_fee = Decimal("40.0") + Decimal(str(round(extra_km * 7.0, 2)))
+            calculated_fee = Decimal("40.0") + Decimal(str(round(extra_km * 7.0, 2)))
+            delivery_fee = min(calculated_fee, MAX_DELIVERY_FEE)
     else:
         delivery_fee = Decimal("0.0")
         
@@ -427,6 +429,24 @@ async def create_order(
         # 3. Calculate Totals
         cart_totals = calculate_cart_totals(cart, db, request.address_id)
         
+        # 3b. Check max delivery radius (30 km)
+        if restaurant and restaurant.address and restaurant.address.latitude is not None and restaurant.address.longitude is not None and address and address.latitude is not None and address.longitude is not None:
+            import math
+            r_lat = float(restaurant.address.latitude)
+            r_lng = float(restaurant.address.longitude)
+            c_lat = float(address.latitude)
+            c_lng = float(address.longitude)
+            dlat = math.radians(c_lat - r_lat)
+            dlon = math.radians(c_lng - r_lng)
+            a = math.sin(dlat / 2)**2 + math.cos(math.radians(r_lat)) * math.cos(math.radians(c_lat)) * math.sin(dlon / 2)**2
+            c_val = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            dist_km = 6371.0 * c_val
+            if dist_km > 30.0:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Delivery address is out of delivery range ({round(dist_km, 1)} km away. Maximum allowed range is 30.0 km)."
+                )
+
         # 4. Create Order
         order = Order(
             order_number=generate_order_number(),

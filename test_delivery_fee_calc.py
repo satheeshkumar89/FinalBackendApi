@@ -180,6 +180,17 @@ def run_test():
         assert totals.delivery_fee == expected_fee, f"Expected {expected_fee}, got {totals.delivery_fee}"
         print("✅ Test 5 Passed!")
 
+        # --- TEST 6: Extreme distance (1986 km - Capped at MAX_DELIVERY_FEE 150.0) ---
+        print("\nTest 6: Extreme distance capping (1986 km)")
+        loc.latitude = 28.6139  # Delhi
+        loc.longitude = 77.2090
+        db.commit()
+
+        totals_extreme = calculate_cart_totals(cart, db)
+        print(f"Calculated extreme delivery fee: {totals_extreme.delivery_fee}")
+        assert totals_extreme.delivery_fee == Decimal("150.0"), f"Expected 150.0, got {totals_extreme.delivery_fee}"
+        print("✅ Test 6 Passed!")
+
         print("\n🎉 ALL TESTS PASSED SUCCESSFULLY!")
         print("=" * 60)
         return True
