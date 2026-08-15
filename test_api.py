@@ -4,8 +4,10 @@ Run with: pytest test_api.py
 """
 
 import pytest
+from unittest.mock import Mock
 from fastapi.testclient import TestClient
 from app.main import app
+from app.services.otp_service import verify_otp
 
 client = TestClient(app)
 
@@ -35,6 +37,14 @@ def test_send_otp():
     data = response.json()
     assert data["success"] == True
     assert "message" in data
+
+
+def test_verify_otp_rejects_default_test_code():
+    """The hardcoded 123456 bypass should not be accepted."""
+    db = Mock()
+    db.query.return_value.filter.return_value.first.return_value = None
+
+    assert verify_otp(db, "+919876543210", "123456") is False
 
 
 def test_get_restaurant_types():
