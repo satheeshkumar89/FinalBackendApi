@@ -95,7 +95,7 @@ class Restaurant(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("owners.id"), nullable=False)
     restaurant_name = Column(String(255), nullable=False)
-    restaurant_type = Column(Enum(RestaurantTypeEnum), nullable=False)
+    restaurant_type = Column(Enum(RestaurantTypeEnum, values_callable=lambda x: [e.value for e in x]), nullable=False)
     fssai_license_number = Column(String(50), unique=True, nullable=False)
     opening_time = Column(String(10), nullable=False)  # Format: HH:MM
     closing_time = Column(String(10), nullable=False)  # Format: HH:MM

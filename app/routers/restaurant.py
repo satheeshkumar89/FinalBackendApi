@@ -104,6 +104,16 @@ def get_restaurant_types():
     )
 
 
+def parse_restaurant_type(val: str) -> RestaurantTypeEnum:
+    if not val:
+        return RestaurantTypeEnum.RESTAURANT
+    clean_val = str(val).strip().lower().replace(" ", "_")
+    for t in RestaurantTypeEnum:
+        if t.value == clean_val or t.name.lower() == clean_val or t.value.replace("_", "") == clean_val.replace("_", ""):
+            return t
+    return RestaurantTypeEnum.RESTAURANT
+
+
 @router.post("/create", response_model=APIResponse)
 def create_restaurant_details(
     restaurant_data: RestaurantCreate,
@@ -112,6 +122,8 @@ def create_restaurant_details(
 ):
     """Create restaurant details"""
     try:
+        res_type = parse_restaurant_type(restaurant_data.restaurant_type)
+
         # Check if owner already has a restaurant
         restaurant = db.query(Restaurant).filter(
             Restaurant.owner_id == current_owner.id
@@ -120,7 +132,7 @@ def create_restaurant_details(
         if restaurant:
             # Update existing instead of erroring
             restaurant.restaurant_name = restaurant_data.restaurant_name
-            restaurant.restaurant_type = restaurant_data.restaurant_type
+            restaurant.restaurant_type = res_type
             restaurant.fssai_license_number = restaurant_data.fssai_license_number
             restaurant.opening_time = restaurant_data.opening_time
             restaurant.closing_time = restaurant_data.closing_time
@@ -142,7 +154,7 @@ def create_restaurant_details(
             restaurant = Restaurant(
                 owner_id=current_owner.id,
                 restaurant_name=restaurant_data.restaurant_name,
-                restaurant_type=restaurant_data.restaurant_type,
+                restaurant_type=res_type,
                 fssai_license_number=restaurant_data.fssai_license_number,
                 opening_time=restaurant_data.opening_time,
                 closing_time=restaurant_data.closing_time
