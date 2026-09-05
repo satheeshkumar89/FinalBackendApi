@@ -106,7 +106,7 @@ class Restaurant(Base):
     is_open = Column(Boolean, default=False)
     average_rating = Column(DECIMAL(3, 2), default=0.0)
     total_reviews = Column(Integer, default=0)
-    verification_status = Column(Enum(VerificationStatusEnum), default=VerificationStatusEnum.PENDING)
+    verification_status = Column(Enum(VerificationStatusEnum, values_callable=lambda x: [e.value for e in x]), default=VerificationStatusEnum.PENDING)
     verification_notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -354,7 +354,7 @@ class DeliveryPartner(Base):
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, default=False)  # Online/Offline status
     is_registered = Column(Boolean, default=False)  # Complete registration status
-    verification_status = Column(Enum(VerificationStatusEnum), default=VerificationStatusEnum.PENDING)  # Admin approval
+    verification_status = Column(Enum(VerificationStatusEnum, values_callable=lambda x: [e.value for e in x]), default=VerificationStatusEnum.PENDING)  # Admin approval
     verification_notes = Column(Text, nullable=True)  # Admin notes for approval/rejection
     last_online_at = Column(DateTime(timezone=True), nullable=True)
     last_offline_at = Column(DateTime(timezone=True), nullable=True)
