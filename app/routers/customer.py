@@ -155,8 +155,10 @@ def calculate_cart_totals(cart: Cart, db: Session = None, address_id: int = None
     items_response = []
     
     for item in cart.items:
+        if not item.menu_item:
+            continue
         # Ensure menu item price is used
-        price = item.menu_item.discount_price if item.menu_item.discount_price and item.menu_item.discount_price > 0 else item.menu_item.price
+        price = item.menu_item.discount_price if item.menu_item.discount_price and item.menu_item.discount_price > 0 else (item.menu_item.price or Decimal("0.0"))
         item_total += price * item.quantity
         
         # Create item response with calculated price
@@ -172,53 +174,56 @@ def calculate_cart_totals(cart: Cart, db: Session = None, address_id: int = None
     # Calculate distance-based delivery fee
     distance_km = None
     if db and cart.restaurant_id and cart.customer_id:
-        # Get restaurant coordinates
-        restaurant = db.query(Restaurant).filter(Restaurant.id == cart.restaurant_id).first()
-        if restaurant and restaurant.address and restaurant.address.latitude is not None and restaurant.address.longitude is not None:
-            r_lat = float(restaurant.address.latitude)
-            r_lng = float(restaurant.address.longitude)
-            
-            # Find customer coordinates
-            c_lat = None
-            c_lng = None
-            
-            if address_id:
-                addr = db.query(CustomerAddress).filter(
-                    CustomerAddress.id == address_id,
-                    CustomerAddress.customer_id == cart.customer_id
-                ).first()
-                if addr and addr.latitude is not None and addr.longitude is not None:
-                    c_lat = float(addr.latitude)
-                    c_lng = float(addr.longitude)
-            else:
-                addr = db.query(CustomerAddress).filter(
-                    CustomerAddress.customer_id == cart.customer_id,
-                    CustomerAddress.is_default == True
-                ).first()
-                if not addr:
+        try:
+            # Get restaurant coordinates
+            restaurant = db.query(Restaurant).filter(Restaurant.id == cart.restaurant_id).first()
+            if restaurant and restaurant.address and restaurant.address.latitude is not None and restaurant.address.longitude is not None:
+                r_lat = float(restaurant.address.latitude)
+                r_lng = float(restaurant.address.longitude)
+                
+                # Find customer coordinates
+                c_lat = None
+                c_lng = None
+                
+                if address_id:
                     addr = db.query(CustomerAddress).filter(
+                        CustomerAddress.id == address_id,
                         CustomerAddress.customer_id == cart.customer_id
                     ).first()
-                
-                if addr and addr.latitude is not None and addr.longitude is not None:
-                    c_lat = float(addr.latitude)
-                    c_lng = float(addr.longitude)
+                    if addr and addr.latitude is not None and addr.longitude is not None:
+                        c_lat = float(addr.latitude)
+                        c_lng = float(addr.longitude)
                 else:
-                    # Fallback to latest CustomerLocation
-                    loc = db.query(CustomerLocation).filter(
-                        CustomerLocation.customer_id == cart.customer_id
-                    ).order_by(CustomerLocation.created_at.desc()).first()
-                    if loc and loc.latitude is not None and loc.longitude is not None:
-                        c_lat = float(loc.latitude)
-                        c_lng = float(loc.longitude)
-            
-            if c_lat is not None and c_lng is not None:
-                import math
-                dlat = math.radians(c_lat - r_lat)
-                dlon = math.radians(c_lng - r_lng)
-                a = math.sin(dlat / 2)**2 + math.cos(math.radians(r_lat)) * math.cos(math.radians(c_lat)) * math.sin(dlon / 2)**2
-                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-                distance_km = 6371.0 * c
+                    addr = db.query(CustomerAddress).filter(
+                        CustomerAddress.customer_id == cart.customer_id,
+                        CustomerAddress.is_default == True
+                    ).first()
+                    if not addr:
+                        addr = db.query(CustomerAddress).filter(
+                            CustomerAddress.customer_id == cart.customer_id
+                        ).first()
+                    
+                    if addr and addr.latitude is not None and addr.longitude is not None:
+                        c_lat = float(addr.latitude)
+                        c_lng = float(addr.longitude)
+                    else:
+                        # Fallback to latest CustomerLocation
+                        loc = db.query(CustomerLocation).filter(
+                            CustomerLocation.customer_id == cart.customer_id
+                        ).order_by(CustomerLocation.created_at.desc()).first()
+                        if loc and loc.latitude is not None and loc.longitude is not None:
+                            c_lat = float(loc.latitude)
+                            c_lng = float(loc.longitude)
+                
+                if c_lat is not None and c_lng is not None:
+                    import math
+                    dlat = math.radians(c_lat - r_lat)
+                    dlon = math.radians(c_lng - r_lng)
+                    a = math.sin(dlat / 2)**2 + math.cos(math.radians(r_lat)) * math.cos(math.radians(c_lat)) * math.sin(dlon / 2)**2
+                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    distance_km = 6371.0 * c
+        except Exception as calc_err:
+            print(f"Error calculating distance fee: {calc_err}")
 
     if item_total > 0:
         if distance_km is None:

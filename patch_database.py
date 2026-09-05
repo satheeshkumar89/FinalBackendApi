@@ -177,6 +177,18 @@ def patch_database():
             except Exception as e:
                 print(f"❌ Error checking/seeding cuisines table: {e}")
 
+            # --- 7. Fix NULL values in menu_items table ---
+            print("Checking menu_items table for NULL values...")
+            try:
+                connection.execute(text("UPDATE menu_items SET discount_price = 0.00 WHERE discount_price IS NULL"))
+                connection.execute(text("UPDATE menu_items SET is_bestseller = 0 WHERE is_bestseller IS NULL"))
+                connection.execute(text("UPDATE menu_items SET rating = 0.00 WHERE rating IS NULL"))
+                connection.execute(text("UPDATE menu_items SET is_vegetarian = 1 WHERE is_vegetarian IS NULL"))
+                connection.execute(text("UPDATE menu_items SET is_available = 1 WHERE is_available IS NULL"))
+                print("✅ Fixed NULL values in menu_items table.")
+            except Exception as e:
+                print(f"❌ Error updating menu_items NULLs: {e}")
+
             # Final Commit for MySQL behavior
             connection.execute(text("COMMIT"))
             print("\nDatabase patch completed successfully.")

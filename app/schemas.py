@@ -162,14 +162,14 @@ class AddressUpdate(AddressCreate):
 
 class AddressResponse(BaseModel):
     id: int
-    latitude: Decimal
-    longitude: Decimal
-    address_line_1: str
-    address_line_2: Optional[str]
-    city: str
-    state: str
-    pincode: str
-    landmark: Optional[str]
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
+    address_line_1: Optional[str] = ""
+    address_line_2: Optional[str] = None
+    city: Optional[str] = ""
+    state: Optional[str] = ""
+    pincode: Optional[str] = ""
+    landmark: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -191,16 +191,16 @@ class CustomerAddressCreate(BaseModel):
 class CustomerAddressResponse(BaseModel):
     id: int
     customer_id: int
-    latitude: Decimal
-    longitude: Decimal
-    address_line_1: str
-    address_line_2: Optional[str]
-    city: str
-    state: str
-    pincode: str
-    landmark: Optional[str]
-    address_type: str
-    is_default: bool
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
+    address_line_1: Optional[str] = ""
+    address_line_2: Optional[str] = None
+    city: Optional[str] = ""
+    state: Optional[str] = ""
+    pincode: Optional[str] = ""
+    landmark: Optional[str] = None
+    address_type: Optional[str] = "home"
+    is_default: Optional[bool] = False
     
     class Config:
         from_attributes = True
@@ -293,8 +293,8 @@ class CategoryResponse(BaseModel):
     id: int
     name: str
     icon: Optional[str] = None
-    is_active: bool
-    display_order: int
+    is_active: Optional[bool] = True
+    display_order: Optional[int] = 0
     
     class Config:
         from_attributes = True
@@ -334,19 +334,19 @@ class MenuItemUpdate(BaseModel):
 class MenuItemResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     price: Decimal
-    discount_price: Optional[Decimal]
-    image_url: Optional[str]
-    category_id: Optional[int]
+    discount_price: Optional[Decimal] = Decimal("0.0")
+    image_url: Optional[str] = None
+    category_id: Optional[int] = None
     category: Optional[CategoryResponse] = None
-    is_vegetarian: bool
-    is_available: bool
-    is_bestseller: bool
-    rating: Decimal
-    preparation_time: Optional[int]
+    is_vegetarian: Optional[bool] = True
+    is_available: Optional[bool] = True
+    is_bestseller: Optional[bool] = False
+    rating: Optional[Decimal] = Decimal("0.0")
+    preparation_time: Optional[int] = None
 
-    created_at: datetime
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -472,8 +472,8 @@ class OrderDetailsResponse(BaseModel):
 
 class OrderCreateRequest(BaseModel):
     restaurant_id: int
-    address_id: int
-    payment_method: str
+    address_id: Optional[int] = None
+    payment_method: Optional[str] = "cod"
     items: Optional[List[dict]] = None # Optional if using cart
 
 
