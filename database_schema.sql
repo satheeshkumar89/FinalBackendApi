@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS restaurants (
     fssai_license_number VARCHAR(50) UNIQUE NOT NULL,
     opening_time VARCHAR(10) NOT NULL,
     closing_time VARCHAR(10) NOT NULL,
+    description TEXT NULL,
+    cost_for_two INT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     is_open BOOLEAN DEFAULT FALSE,
     average_rating DECIMAL(3,2) DEFAULT 0.00,

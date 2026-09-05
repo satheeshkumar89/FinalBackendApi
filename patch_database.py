@@ -60,6 +60,21 @@ def patch_database():
             except Exception as e:
                 print(f"❌ Error patching otps: {e}")
 
+            # --- 3b. Patch restaurants table ---
+            print("Checking restaurants table for description and cost_for_two...")
+            try:
+                if not connection.execute(text("SHOW COLUMNS FROM restaurants LIKE 'description'")).fetchone():
+                    print("⚠️ Column 'description' missing from restaurants. Adding it...")
+                    connection.execute(text("ALTER TABLE restaurants ADD COLUMN description TEXT NULL"))
+                    print("✅ Added 'description' column to restaurants.")
+
+                if not connection.execute(text("SHOW COLUMNS FROM restaurants LIKE 'cost_for_two'")).fetchone():
+                    print("⚠️ Column 'cost_for_two' missing from restaurants. Adding it...")
+                    connection.execute(text("ALTER TABLE restaurants ADD COLUMN cost_for_two INT NULL"))
+                    print("✅ Added 'cost_for_two' column to restaurants.")
+            except Exception as e:
+                print(f"❌ Error patching restaurants: {e}")
+
             # --- 4. Patch device_tokens table ---
             print("Checking device_tokens table...")
             try:
