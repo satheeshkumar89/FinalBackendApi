@@ -109,6 +109,11 @@ def get_current_customer(
     
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if customer is None:
+        phone_number = payload.get("phone_number")
+        if phone_number:
+            customer = db.query(Customer).filter(Customer.phone_number == phone_number).first()
+
+    if customer is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Customer not found",

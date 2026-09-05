@@ -462,10 +462,15 @@ async def create_order(
         # 4. Create Order
         from datetime import datetime
         now_dt = datetime.utcnow()
+
+        # Verify customer_id exists in database to prevent Foreign Key constraint errors
+        valid_cust = db.query(Customer).filter(Customer.id == current_customer.id).first()
+        cust_id_val = valid_cust.id if valid_cust else None
+
         order = Order(
             order_number=generate_order_number(),
             restaurant_id=request.restaurant_id,
-            customer_id=current_customer.id,
+            customer_id=cust_id_val,
             customer_name=current_customer.full_name or "Guest",
             customer_phone=current_customer.phone_number,
             delivery_address=delivery_address_str,
