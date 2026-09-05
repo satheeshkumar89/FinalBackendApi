@@ -72,8 +72,30 @@ def patch_database():
                     print("⚠️ Column 'cost_for_two' missing from restaurants. Adding it...")
                     connection.execute(text("ALTER TABLE restaurants ADD COLUMN cost_for_two INT NULL"))
                     print("✅ Added 'cost_for_two' column to restaurants.")
+            # --- 3c. Patch menu_items table ---
+            print("Checking menu_items table for category_id...")
+            try:
+                if not connection.execute(text("SHOW COLUMNS FROM menu_items LIKE 'category_id'")).fetchone():
+                    print("⚠️ Column 'category_id' missing from menu_items. Adding it...")
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN category_id INT NULL"))
+                    print("✅ Added 'category_id' column to menu_items.")
+
+                if not connection.execute(text("SHOW COLUMNS FROM menu_items LIKE 'discount_price'")).fetchone():
+                    print("⚠️ Column 'discount_price' missing from menu_items. Adding it...")
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN discount_price DECIMAL(10,2) DEFAULT 0.00"))
+                    print("✅ Added 'discount_price' column to menu_items.")
+
+                if not connection.execute(text("SHOW COLUMNS FROM menu_items LIKE 'is_bestseller'")).fetchone():
+                    print("⚠️ Column 'is_bestseller' missing from menu_items. Adding it...")
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN is_bestseller BOOLEAN DEFAULT FALSE"))
+                    print("✅ Added 'is_bestseller' column to menu_items.")
+
+                if not connection.execute(text("SHOW COLUMNS FROM menu_items LIKE 'rating'")).fetchone():
+                    print("⚠️ Column 'rating' missing from menu_items. Adding it...")
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN rating DECIMAL(3,2) DEFAULT 0.00"))
+                    print("✅ Added 'rating' column to menu_items.")
             except Exception as e:
-                print(f"❌ Error patching restaurants: {e}")
+                print(f"❌ Error patching menu_items: {e}")
 
             # --- 4. Patch device_tokens table ---
             print("Checking device_tokens table...")

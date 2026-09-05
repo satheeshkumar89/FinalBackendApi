@@ -131,19 +131,25 @@ CREATE TABLE IF NOT EXISTS device_tokens (
 CREATE TABLE IF NOT EXISTS menu_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     restaurant_id INT NOT NULL,
+    category_id INT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
+    discount_price DECIMAL(10,2) DEFAULT 0.00,
     image_url VARCHAR(500),
     category VARCHAR(100),
     is_vegetarian BOOLEAN DEFAULT FALSE,
     is_available BOOLEAN DEFAULT TRUE,
+    is_bestseller BOOLEAN DEFAULT FALSE,
+    rating DECIMAL(3,2) DEFAULT 0.00,
     preparation_time INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     INDEX idx_restaurant_menu (restaurant_id),
-    INDEX idx_category (category)
+    INDEX idx_category (category),
+    INDEX idx_category_id (category_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Orders table
