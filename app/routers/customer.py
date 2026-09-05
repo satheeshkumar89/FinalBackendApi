@@ -460,6 +460,8 @@ async def create_order(
                 )
 
         # 4. Create Order
+        from datetime import datetime
+        now_dt = datetime.utcnow()
         order = Order(
             order_number=generate_order_number(),
             restaurant_id=request.restaurant_id,
@@ -473,7 +475,9 @@ async def create_order(
             tax_amount=cart_totals.tax_amount,
             discount_amount=cart_totals.discount_amount,
             payment_method=request.payment_method,
-            payment_status="success"
+            payment_status="success",
+            created_at=now_dt,
+            updated_at=now_dt
         )
         db.add(order)
         db.flush() # Get order ID without committing yet
