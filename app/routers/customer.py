@@ -61,8 +61,8 @@ def get_home_data(
         Restaurant.is_active == True
     ).order_by(
         desc(Restaurant.is_open),
-        desc(Restaurant.rating),
-        Restaurant.name
+        desc(Restaurant.average_rating),
+        Restaurant.restaurant_name
     ).all()
     # Construct response
     data = {
