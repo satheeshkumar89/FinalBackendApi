@@ -39,6 +39,10 @@ def patch_database():
             orders_columns = {
                 "customer_id": "INT NULL",
                 "delivery_partner_id": "INT NULL",
+                "payment_method": "VARCHAR(50) NULL",
+                "payment_status": "VARCHAR(50) DEFAULT 'pending'",
+                "special_instructions": "TEXT NULL",
+                "estimated_delivery_time": "DATETIME NULL",
                 "accepted_at": "DATETIME NULL",
                 "preparing_at": "DATETIME NULL",
                 "ready_at": "DATETIME NULL",
@@ -50,7 +54,9 @@ def patch_database():
                 "released_at": "DATETIME NULL",
                 "rejected_at": "DATETIME NULL",
                 "rejection_reason": "TEXT NULL",
-                "completed_at": "DATETIME NULL"
+                "completed_at": "DATETIME NULL",
+                "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
+                "updated_at": "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
             }
             for col_name, col_type in orders_columns.items():
                 try:
