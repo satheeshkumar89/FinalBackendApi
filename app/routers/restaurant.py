@@ -454,7 +454,7 @@ def get_presigned_upload_url(
     document_type: str,
     filename: str,
     content_type: str,
-    restaurant: Restaurant = Depends(get_current_restaurant)
+    current_owner: Owner = Depends(get_current_owner)
 ):
     """Get presigned URL for document upload"""
     try:
