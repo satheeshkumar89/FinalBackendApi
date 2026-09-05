@@ -35,17 +35,32 @@ def patch_database():
             # Set to autocommit or handle commits manually
             
             # --- 2. Patch orders table ---
-            print("Checking orders table for released_at...")
-            try:
-                result = connection.execute(text("SHOW COLUMNS FROM orders LIKE 'released_at'"))
-                if not result.fetchone():
-                    print("⚠️ Column 'released_at' missing. Adding it...")
-                    connection.execute(text("ALTER TABLE orders ADD COLUMN released_at DATETIME NULL"))
-                    print("✅ Added 'released_at' column.")
-                else:
-                    print("✅ 'released_at' already exists.")
-            except Exception as e:
-                print(f"❌ Error patching orders: {e}")
+            print("Checking orders table for missing columns...")
+            orders_columns = {
+                "customer_id": "INT NULL",
+                "delivery_partner_id": "INT NULL",
+                "accepted_at": "DATETIME NULL",
+                "preparing_at": "DATETIME NULL",
+                "ready_at": "DATETIME NULL",
+                "handed_over_at": "DATETIME NULL",
+                "assigned_at": "DATETIME NULL",
+                "reached_restaurant_at": "DATETIME NULL",
+                "pickedup_at": "DATETIME NULL",
+                "delivered_at": "DATETIME NULL",
+                "released_at": "DATETIME NULL",
+                "rejected_at": "DATETIME NULL",
+                "rejection_reason": "TEXT NULL",
+                "completed_at": "DATETIME NULL"
+            }
+            for col_name, col_type in orders_columns.items():
+                try:
+                    result = connection.execute(text(f"SHOW COLUMNS FROM orders LIKE '{col_name}'"))
+                    if not result.fetchone():
+                        print(f"⚠️ Column '{col_name}' missing from orders. Adding it...")
+                        connection.execute(text(f"ALTER TABLE orders ADD COLUMN {col_name} {col_type}"))
+                        print(f"✅ Added '{col_name}' column to orders.")
+                except Exception as e:
+                    print(f"❌ Error patching orders column '{col_name}': {e}")
 
             # --- 3. Patch otps table ---
             print("Checking otps table for customer_id and delivery_partner_id...")
