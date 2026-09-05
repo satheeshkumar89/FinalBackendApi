@@ -453,10 +453,10 @@ async def create_order(
             a = math.sin(dlat / 2)**2 + math.cos(math.radians(r_lat)) * math.cos(math.radians(c_lat)) * math.sin(dlon / 2)**2
             c_val = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
             dist_km = 6371.0 * c_val
-            if dist_km > 30.0:
+            if dist_km > 5000.0:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"Delivery address is out of delivery range ({round(dist_km, 1)} km away. Maximum allowed range is 30.0 km)."
+                    detail=f"Delivery address is out of delivery range ({round(dist_km, 1)} km away. Maximum allowed range is 5000.0 km)."
                 )
 
         # 4. Create Order
