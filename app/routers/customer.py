@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from app.database import get_db
 from app.schemas import (
     CustomerUpdate, CustomerResponse, APIResponse, RestaurantResponse, 
@@ -55,8 +56,14 @@ def get_home_data(
     # Get categories
     categories = db.query(Category).filter(Category.is_active == True).order_by(Category.display_order).all()
     
-    # Get restaurants (return all active to allow frontend to show 'Closed' state)
-    restaurants = db.query(Restaurant).filter(Restaurant.is_active == True).all()
+    # Get restaurants (Online first: is_open=True at top, Offline: is_open=False at bottom)
+    restaurants = db.query(Restaurant).filter(
+        Restaurant.is_active == True
+    ).order_by(
+        desc(Restaurant.is_open),
+        desc(Restaurant.rating),
+        Restaurant.name
+    ).all()
     # Construct response
     data = {
         "categories": [CategoryResponse.from_orm(c).dict() for c in categories],
