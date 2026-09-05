@@ -72,6 +72,9 @@ def patch_database():
                     print("⚠️ Column 'cost_for_two' missing from restaurants. Adding it...")
                     connection.execute(text("ALTER TABLE restaurants ADD COLUMN cost_for_two INT NULL"))
                     print("✅ Added 'cost_for_two' column to restaurants.")
+            except Exception as e:
+                print(f"❌ Error patching restaurants: {e}")
+
             # --- 3c. Patch menu_items table ---
             print("Checking menu_items table for category_id...")
             try:
