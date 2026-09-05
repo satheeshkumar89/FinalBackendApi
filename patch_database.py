@@ -210,6 +210,15 @@ def patch_database():
             except Exception as e:
                 print(f"❌ Error updating menu_items NULLs: {e}")
 
+            # --- 8. Normalize verification_status values ---
+            print("Normalizing verification_status values...")
+            try:
+                connection.execute(text("UPDATE delivery_partners SET verification_status = LOWER(verification_status) WHERE verification_status IS NOT NULL"))
+                connection.execute(text("UPDATE restaurants SET verification_status = LOWER(verification_status) WHERE verification_status IS NOT NULL"))
+                print("✅ Normalized verification_status values to lowercase.")
+            except Exception as e:
+                print(f"❌ Error normalizing verification_status: {e}")
+
             # Final Commit for MySQL behavior
             connection.execute(text("COMMIT"))
             print("\nDatabase patch completed successfully.")

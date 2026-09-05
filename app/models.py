@@ -15,6 +15,15 @@ class VerificationStatusEnum(str, enum.Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            val_lower = value.lower()
+            for member in cls:
+                if member.value == val_lower or member.name.lower() == val_lower:
+                    return member
+        return None
+
 
 class RestaurantTypeEnum(str, enum.Enum):
     RESTAURANT = "restaurant"
@@ -23,6 +32,15 @@ class RestaurantTypeEnum(str, enum.Enum):
     FAST_FOOD = "fast_food"
     FINE_DINING = "fine_dining"
     CLOUD_KITCHEN = "cloud_kitchen"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            val_lower = value.lower()
+            for member in cls:
+                if member.value == val_lower or member.name.lower() == val_lower:
+                    return member
+        return None
 
 
 class OrderStatusEnum(str, enum.Enum):

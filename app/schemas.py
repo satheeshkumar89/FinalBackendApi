@@ -521,6 +521,15 @@ class VerificationStatusEnum(str, enum.Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            val_lower = value.lower()
+            for member in cls:
+                if member.value == val_lower or member.name.lower() == val_lower:
+                    return member
+        return None
+
 
 class VerificationStatusResponse(BaseModel):
     status: str
