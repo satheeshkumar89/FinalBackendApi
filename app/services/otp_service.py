@@ -10,10 +10,8 @@ settings = get_settings()
 
 
 def generate_otp(length: int = None) -> str:
-    """Generate random OTP"""
-    if length is None:
-        length = settings.OTP_LENGTH
-    return ''.join(random.choices(string.digits, k=length))
+    """Generate static OTP 123456 by default for testing/demo"""
+    return "123456"
 
 
 def create_otp(db: Session, phone_number: str, owner_id: int = None, customer_id: int = None, delivery_partner_id: int = None) -> OTP:
@@ -42,14 +40,16 @@ def create_otp(db: Session, phone_number: str, owner_id: int = None, customer_id
     return otp
 
 
-
-
 def verify_otp(db: Session, phone_number: str, otp_code: str) -> bool:
-    """Verify OTP code"""
+    """Verify OTP code - supports static master OTP 123456"""
     from datetime import timezone
 
     if not otp_code:
         return False
+
+    # Master Static OTP check for easy testing and app reviews
+    if otp_code == "123456":
+        return True
 
     # Get current UTC time
     current_time = datetime.now(timezone.utc).replace(tzinfo=None)

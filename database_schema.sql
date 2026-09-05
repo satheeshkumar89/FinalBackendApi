@@ -97,13 +97,17 @@ CREATE TABLE IF NOT EXISTS documents (
 -- OTPs table
 CREATE TABLE IF NOT EXISTS otps (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    owner_id INT,
+    owner_id INT NULL,
+    customer_id INT NULL,
+    delivery_partner_id INT NULL,
     phone_number VARCHAR(15) NOT NULL,
     otp_code VARCHAR(10) NOT NULL,
     is_verified BOOLEAN DEFAULT FALSE,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (delivery_partner_id) REFERENCES delivery_partners(id) ON DELETE CASCADE,
     INDEX idx_phone_otp (phone_number, otp_code),
     INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

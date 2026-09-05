@@ -48,14 +48,15 @@ def patch_database():
                 print(f"❌ Error patching orders: {e}")
 
             # --- 3. Patch otps table ---
-            print("Checking otps table for customer_id...")
+            print("Checking otps table for customer_id and delivery_partner_id...")
             try:
-                result = connection.execute(text("SHOW COLUMNS FROM otps LIKE 'customer_id'"))
-                if not result.fetchone():
-                    print("⚠️ Column 'customer_id' missing. Adding it...")
-                    connection.execute(text("ALTER TABLE otps ADD COLUMN customer_id INT NULL"))
-                    # Don't add constraint immediately to avoid issues if table is busy
-                    print("✅ Added 'customer_id' column to otps.")
+                cols_to_add = ["customer_id", "delivery_partner_id"]
+                for col in cols_to_add:
+                    result = connection.execute(text(f"SHOW COLUMNS FROM otps LIKE '{col}'"))
+                    if not result.fetchone():
+                        print(f"⚠️ Column '{col}' missing from otps. Adding it...")
+                        connection.execute(text(f"ALTER TABLE otps ADD COLUMN {col} INT NULL"))
+                        print(f"✅ Added '{col}' column to otps.")
             except Exception as e:
                 print(f"❌ Error patching otps: {e}")
 
