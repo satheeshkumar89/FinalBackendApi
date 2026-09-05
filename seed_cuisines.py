@@ -17,13 +17,14 @@ from app.database import SessionLocal
 from app.models import Cuisine
 
 CUISINES = [
+    "Starters", "Main Course", "Breads", "Rice & Biryani", "Desserts", "Beverages", "Snacks", "Combos",
     "North Indian", "South Indian", "Andhra", "Chettinad", "Kerala", "Tamil", "Hyderabadi", "Udupi",
     "Bengali", "Assamese", "Oriya", "Rajasthani", "Gujarati", "Kashmiri", "Punjabi", "Maharashtrian",
     "Goan", "Bihari", "Awadhi", "Lucknowi", "Mughlai", "Tandoor", "Kebab", "Grill", "Biryani",
     "Chinese", "Asian", "Pan Asian", "Thai", "Korean", "Japanese", "Sushi", "Indo-Chinese",
     "Vietnamese", "Singaporean", "Noodles", "Ramen", "Dumplings", "Momos", "Bakery", "Cakes",
-    "Pastries", "Desserts", "Ice Cream", "Waffles", "Brownies", "Cookies", "Cupcakes", "Shakes",
-    "Smoothies", "Juices", "Milkshakes", "Tea", "Coffee", "Beverages", "Mocktails", "Soda", "Lassi",
+    "Pastries", "Ice Cream", "Waffles", "Brownies", "Cookies", "Cupcakes", "Shakes",
+    "Smoothies", "Juices", "Milkshakes", "Tea", "Coffee", "Mocktails", "Soda", "Lassi",
     "Falooda", "Juice Bar", "Italian", "Pizza", "Pasta", "Risotto", "Garlic Bread", "Mexican",
     "Tacos", "Burritos", "Nachos", "Quesadilla", "Continental", "European", "Mediterranean",
     "Lebanese", "Turkish", "Greek", "Middle Eastern", "Shawarma", "Falafel", "American", "Fast Food",
@@ -33,8 +34,8 @@ CUISINES = [
     "Vada Pav", "Dabeli", "Rolls", "Kathi Rolls", "Frankie", "Wraps", "Sandwiches", "Grilled Sandwich",
     "Sub Sandwich", "Paratha", "Roti", "Rice Bowls", "Thali", "Combo Meals", "Meals", "Lunchbox",
     "Home Food", "Homestyle", "Dosa", "Idli", "Vada", "Appam", "Pongal", "Poori", "Chapati Meals",
-    "Breakfast", "Brunch", "Snacks", "Quick Bites", "Bento Boxes", "Wings", "Fried Chicken",
-    "Popcorn Chicken", "Birria", "Soup", "Appetizers", "Starters", "Tiffins", "Halwa", "Gulab Jamun",
+    "Breakfast", "Brunch", "Quick Bites", "Bento Boxes", "Wings", "Fried Chicken",
+    "Popcorn Chicken", "Birria", "Soup", "Appetizers", "Tiffins", "Halwa", "Gulab Jamun",
     "Rasmalai", "Kheer", "Indian Sweets", "Mithai", "Laddoo", "Barfi", "Festival Specials",
     "Diwali Sweets", "Ramzan Special", "Haleem", "Special Thali", "Seasonal Specials", "Chef Special",
     "Family Pack", "Kids Menu", "Party Pack", "Large Meals", "Budget Meals", "Value Combos",

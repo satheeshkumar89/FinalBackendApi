@@ -138,6 +138,45 @@ def patch_database():
             except Exception as e:
                 print(f"❌ Error creating notifications table: {e}")
 
+            # --- 6. Check and Seed Cuisines table ---
+            print("Checking cuisines table...")
+            try:
+                # Check table exists
+                res = connection.execute(text("SHOW TABLES LIKE 'cuisines'"))
+                if res.fetchone():
+                    count_res = connection.execute(text("SELECT COUNT(*) FROM cuisines")).fetchone()
+                    if count_res and count_res[0] == 0:
+                        print("⚠️ Cuisines table is empty! Seeding default cuisines...")
+                        CUISINES = [
+                            "Starters", "Main Course", "Breads", "Rice & Biryani", "Desserts", "Beverages", "Snacks", "Combos",
+                            "North Indian", "South Indian", "Andhra", "Chettinad", "Kerala", "Tamil", "Hyderabadi", "Udupi",
+                            "Bengali", "Assamese", "Oriya", "Rajasthani", "Gujarati", "Kashmiri", "Punjabi", "Maharashtrian",
+                            "Goan", "Bihari", "Awadhi", "Lucknowi", "Mughlai", "Tandoor", "Kebab", "Grill", "Biryani",
+                            "Chinese", "Asian", "Pan Asian", "Thai", "Korean", "Japanese", "Sushi", "Indo-Chinese",
+                            "Vietnamese", "Singaporean", "Noodles", "Ramen", "Dumplings", "Momos", "Bakery", "Cakes",
+                            "Pastries", "Ice Cream", "Waffles", "Brownies", "Cookies", "Cupcakes", "Shakes",
+                            "Smoothies", "Juices", "Milkshakes", "Tea", "Coffee", "Mocktails", "Soda", "Lassi",
+                            "Falooda", "Juice Bar", "Italian", "Pizza", "Pasta", "Risotto", "Garlic Bread", "Mexican",
+                            "Tacos", "Burritos", "Nachos", "Quesadilla", "Continental", "European", "Mediterranean",
+                            "Lebanese", "Turkish", "Greek", "Middle Eastern", "Shawarma", "Falafel", "American", "Fast Food",
+                            "Burgers", "Hot Dogs", "Steak", "BBQ", "Barbecue", "Seafood", "Fish", "Prawns", "Crab",
+                            "Sushi Seafoods", "Healthy Food", "Diet Food", "Protein Bowls", "Salads", "Keto", "Vegan",
+                            "Vegetarian", "Pure Veg", "Satvik", "Organic Food", "Street Food", "Chaat", "Pani Puri",
+                            "Vada Pav", "Dabeli", "Rolls", "Kathi Rolls", "Frankie", "Wraps", "Sandwiches", "Grilled Sandwich",
+                            "Sub Sandwich", "Paratha", "Roti", "Rice Bowls", "Thali", "Combo Meals", "Meals", "Lunchbox",
+                            "Home Food", "Homestyle", "Dosa", "Idli", "Vada", "Appam", "Pongal", "Poori", "Chapati Meals",
+                            "Breakfast", "Brunch", "Quick Bites", "Bento Boxes", "Wings", "Fried Chicken",
+                            "Popcorn Chicken", "Birria", "Soup", "Appetizers", "Tiffins", "Halwa", "Gulab Jamun",
+                            "Rasmalai", "Kheer", "Indian Sweets", "Mithai", "Laddoo", "Barfi", "Festival Specials"
+                        ]
+                        for c_name in CUISINES:
+                            connection.execute(text("INSERT INTO cuisines (name, is_active) VALUES (:name, 1)"), {"name": c_name})
+                        print(f"✅ Seeded {len(CUISINES)} default cuisines.")
+                    else:
+                        print(f"✅ Cuisines table already has {count_res[0]} entries.")
+            except Exception as e:
+                print(f"❌ Error checking/seeding cuisines table: {e}")
+
             # Final Commit for MySQL behavior
             connection.execute(text("COMMIT"))
             print("\nDatabase patch completed successfully.")
