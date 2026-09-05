@@ -108,14 +108,14 @@ class NotificationService:
             ).all()
             
             for partner in online_partners:
-                should_notify = True # Default to True if coordinates missing for backward compatibility
+                should_notify = False # Zomato style: Only notify nearby partners with active GPS
                 
-                # 3. Calculate Distance if both have coordinates
-                if restaurant_location and partner.latitude and partner.longitude:
+                # 3. Calculate Distance using Haversine formula (in KM)
+                if restaurant_location and partner.latitude is not None and partner.longitude is not None:
                     partner_loc = (float(partner.latitude), float(partner.longitude))
                     
                     # Haversine formula for distance calculation (in kilometers)
-                    R = 6371.0 # Earth radius
+                    R = 6371.0 # Earth radius in KM
                     lat1, lon1 = math.radians(restaurant_location[0]), math.radians(restaurant_location[1])
                     lat2, lon2 = math.radians(partner_loc[0]), math.radians(partner_loc[1])
                     
@@ -126,9 +126,9 @@ class NotificationService:
                     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
                     distance = R * c
                     
-                    # Only notify if within 5.0 KM
-                    if distance > 5.0:
-                        should_notify = False
+                    # Only notify delivery partners within 5.0 KM radius of restaurant
+                    if distance <= 5.0:
+                        should_notify = True
                 
                 if should_notify:
                     await NotificationService.create_notification(
