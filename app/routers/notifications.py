@@ -43,6 +43,23 @@ def get_customer_notifications(
     )
 
 
+@router.get("/delivery-partner", response_model=APIResponse)
+def get_delivery_partner_notifications(
+    db: Session = Depends(get_db),
+    delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner)
+):
+    """Get notifications for the current delivery partner"""
+    notifications = db.query(Notification).filter(
+        Notification.delivery_partner_id == delivery_partner.id
+    ).order_by(Notification.created_at.desc()).limit(50).all()
+    
+    return APIResponse(
+        success=True,
+        message="Notifications retrieved successfully",
+        data=[NotificationResponse.from_orm(n).dict() for n in notifications]
+    )
+
+
 @router.put("/{notification_id}/read", response_model=APIResponse)
 def mark_as_read(
     notification_id: int,
@@ -104,6 +121,33 @@ def register_customer_device_token(
     else:
         token = DeviceToken(
             customer_id=customer.id,
+            token=request.token,
+            device_type=request.device_type
+        )
+        db.add(token)
+    
+    db.commit()
+    return APIResponse(
+        success=True,
+        message="Device token registered successfully"
+    )
+
+
+@router.post("/delivery-partner/device-token", response_model=APIResponse)
+def register_delivery_partner_device_token_alt(
+    request: DeviceTokenCreate,
+    db: Session = Depends(get_db),
+    delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner)
+):
+    """Register or update device token for delivery partner"""
+    token = db.query(DeviceToken).filter(DeviceToken.token == request.token).first()
+    if token:
+        token.delivery_partner_id = delivery_partner.id
+        token.device_type = request.device_type
+        token.is_active = True
+    else:
+        token = DeviceToken(
+            delivery_partner_id=delivery_partner.id,
             token=request.token,
             device_type=request.device_type
         )
