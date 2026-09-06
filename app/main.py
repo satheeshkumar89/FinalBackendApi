@@ -34,6 +34,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+def startup_event():
+    try:
+        from app.services.firebase_service import FirebaseService
+        initialized = FirebaseService.initialize()
+        if initialized:
+            logger.info("✅ Firebase Service initialized successfully on startup.")
+        else:
+            logger.warning("⚠️ Firebase Service running in simulated development mode.")
+    except Exception as e:
+        logger.error(f"❌ Error initializing Firebase Service: {e}")
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,

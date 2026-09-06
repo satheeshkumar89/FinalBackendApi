@@ -19,13 +19,28 @@ class FirebaseService:
         try:
             firebase_admin.get_app()
             cls._initialized = True
+            print("✅ Firebase Admin SDK already initialized.")
             return True
         except ValueError:
             # App not initialized yet, proceed
             pass
 
         try:
-            # List of possible locations for the service account key
+            # 1. Check if raw JSON string is passed via environment variable
+            env_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+            if env_json and env_json.strip():
+                import json
+                try:
+                    cred_dict = json.loads(env_json)
+                    cred = credentials.Certificate(cred_dict)
+                    firebase_admin.initialize_app(cred)
+                    cls._initialized = True
+                    print("✅ Firebase Admin SDK initialized successfully from environment variable FIREBASE_SERVICE_ACCOUNT_JSON")
+                    return True
+                except Exception as ex:
+                    print(f"⚠️ Error parsing FIREBASE_SERVICE_ACCOUNT_JSON env var: {ex}")
+
+            # 2. List of possible locations for the service account key
             possible_paths = [
                 os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"),
                 "firebase-service-account.json",
@@ -54,6 +69,7 @@ class FirebaseService:
         except Exception as e:
             if "The default Firebase app already exists" in str(e):
                 cls._initialized = True
+                print("✅ Firebase Admin SDK default app exists.")
                 return True
             print(f"⚠ Firebase initialization failed: {e}")
             return False
