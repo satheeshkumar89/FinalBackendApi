@@ -268,12 +268,30 @@ class NotificationService:
                 body=message
             )
             
+            # Android high importance channel & priority
+            android_config = messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    channel_id='high_importance_channel',
+                    priority='max'
+                )
+            )
+            # iOS APNS config
+            apns_config = messaging.APNSConfig(
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(sound='default', content_available=True)
+                )
+            )
+
             # Use multicast for multiple tokens
             response = messaging.send_each_for_multicast(
                 messaging.MulticastMessage(
                     notification=fcm_notification,
                     tokens=tokens,
-                    data=data or {}
+                    data=data or {},
+                    android=android_config,
+                    apns=apns_config
                 )
             )
             print(f"✅ Successfully sent {response.success_count} FCM messages")
@@ -304,13 +322,28 @@ class NotificationService:
             return
         
         try:
+            android_config = messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    channel_id='high_importance_channel',
+                    priority='max'
+                )
+            )
+            apns_config = messaging.APNSConfig(
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(sound='default', content_available=True)
+                )
+            )
             fcm_message = messaging.Message(
                 notification=messaging.Notification(
                     title=title,
                     body=message
                 ),
                 topic=topic,
-                data=data or {}
+                data=data or {},
+                android=android_config,
+                apns=apns_config
             )
             response = messaging.send(fcm_message)
             print(f"✅ Successfully broadcasted to topic '{topic}': {response}")
