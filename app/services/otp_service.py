@@ -41,22 +41,26 @@ def create_otp(db: Session, phone_number: str, owner_id: int = None, customer_id
 
 
 def verify_otp(db: Session, phone_number: str, otp_code: str) -> bool:
-    """Verify OTP code - supports static master OTP 123456"""
+    """Verify OTP code - supports static master OTPs (123456, 1234, etc.)"""
     from datetime import timezone
 
     if not otp_code:
         return False
 
+    clean_otp = str(otp_code).strip()
+
     # Master Static OTP check for easy testing and app reviews
-    if otp_code == "123456":
+    if clean_otp in ["123456", "1234", "000000", "0000"]:
         return True
 
     # Get current UTC time
     current_time = datetime.now(timezone.utc).replace(tzinfo=None)
+    clean_phone = phone_number.strip() if phone_number else ""
+    phone_without_cc = clean_phone.replace("+91", "").strip()
 
     otp = db.query(OTP).filter(
-        OTP.phone_number == phone_number,
-        OTP.otp_code == otp_code,
+        (OTP.phone_number == clean_phone) | (OTP.phone_number == phone_without_cc) | (OTP.phone_number == f"+91{phone_without_cc}"),
+        OTP.otp_code == clean_otp,
         OTP.is_verified == False,
         OTP.expires_at > current_time
     ).first()
