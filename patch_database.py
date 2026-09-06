@@ -68,6 +68,13 @@ def patch_database():
                 except Exception as e:
                     print(f"❌ Error patching orders column '{col_name}': {e}")
 
+            print("Ensuring orders.status is VARCHAR(50)...")
+            try:
+                connection.execute(text("ALTER TABLE orders MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'"))
+                print("✅ Converted orders.status column to VARCHAR(50).")
+            except Exception as e:
+                print(f"❌ Error modifying orders.status column: {e}")
+
             # --- 3. Patch otps table ---
             print("Checking otps table for customer_id and delivery_partner_id...")
             try:
