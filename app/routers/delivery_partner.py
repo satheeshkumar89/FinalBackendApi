@@ -144,10 +144,14 @@ def send_otp_to_delivery_partner(
         
         # If doesn't exist, create new delivery partner
         if not delivery_partner:
+            from datetime import datetime
+            now_dt = datetime.utcnow()
             delivery_partner = DeliveryPartner(
                 full_name="Delivery Partner",  # Will be updated during profile completion
                 phone_number=request.phone_number,
-                is_active=True
+                is_active=True,
+                created_at=now_dt,
+                updated_at=now_dt
             )
             db.add(delivery_partner)
             db.commit()
@@ -181,7 +185,10 @@ def send_otp_to_delivery_partner(
             message="OTP sent successfully",
             data=response_data
         )
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send OTP: {str(e)}"
