@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Tex
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+from datetime import datetime
 
 
 class DeliveryPartnerLocation(Base):
@@ -21,8 +22,8 @@ class DeliveryPartnerLocation(Base):
     # Address details (reverse geocoded)
     address = Column(Text, nullable=True)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     delivery_partner = relationship("DeliveryPartner", backref="location_history")
@@ -42,7 +43,7 @@ class CustomerLocation(Base):
     address = Column(Text, nullable=False)
     landmark = Column(String(255), nullable=True)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     customer = relationship("Customer")

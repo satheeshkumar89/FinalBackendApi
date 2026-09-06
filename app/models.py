@@ -75,8 +75,8 @@ class Owner(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     phone_number = Column(String(15), unique=True, nullable=False, index=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     restaurants = relationship("Restaurant", back_populates="owner")
@@ -94,8 +94,8 @@ class Customer(Base):
     phone_number = Column(String(15), unique=True, nullable=False, index=True)
     profile_photo = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     otps = relationship("OTP", back_populates="customer")
@@ -127,8 +127,8 @@ class Restaurant(Base):
     total_reviews = Column(Integer, default=0)
     verification_status = Column(Enum(VerificationStatusEnum, values_callable=lambda x: [e.value for e in x]), default=VerificationStatusEnum.PENDING)
     verification_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     owner = relationship("Owner", back_populates="restaurants")
@@ -178,7 +178,7 @@ class Cuisine(Base):
     name = Column(String(100), unique=True, nullable=False)
     icon = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     restaurants = relationship("RestaurantCuisine", back_populates="cuisine")
@@ -192,7 +192,7 @@ class Category(Base):
     icon = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
     display_order = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     menu_items = relationship("MenuItem", back_populates="category")
@@ -204,7 +204,7 @@ class RestaurantCuisine(Base):
     id = Column(Integer, primary_key=True, index=True)
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), nullable=False)
     cuisine_id = Column(Integer, ForeignKey("cuisines.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     restaurant = relationship("Restaurant", back_populates="cuisines_rel")
@@ -224,8 +224,8 @@ class Address(Base):
     state = Column(String(100), nullable=False)
     pincode = Column(String(10), nullable=False)
     landmark = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     restaurant = relationship("Restaurant", back_populates="address")
@@ -246,8 +246,8 @@ class CustomerAddress(Base):
     landmark = Column(String(255), nullable=True)
     address_type = Column(String(50), default="home")  # home, work, other
     is_default = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     customer = relationship("Customer", back_populates="addresses")
@@ -263,7 +263,7 @@ class Document(Base):
     file_url = Column(String(500), nullable=False)
     file_name = Column(String(255), nullable=False)
     file_size = Column(Integer, nullable=True)  # in bytes
-    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    uploaded_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     restaurant = relationship("Restaurant", back_populates="documents")
@@ -280,7 +280,7 @@ class OTP(Base):
     otp_code = Column(String(10), nullable=False)
     is_verified = Column(Boolean, default=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     owner = relationship("Owner", back_populates="otps")
@@ -300,8 +300,8 @@ class DeviceToken(Base):
     token = Column(String(500), unique=True, nullable=False)
     device_type = Column(String(50), nullable=False)  # ios, android, web
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     owner = relationship("Owner", back_populates="device_tokens")
@@ -323,7 +323,7 @@ class Notification(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
     
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     owner = relationship("Owner", back_populates="notifications")
@@ -348,9 +348,9 @@ class MenuItem(Base):
     is_bestseller = Column(Boolean, default=False)
     rating = Column(DECIMAL(3, 2), default=0.0)
     preparation_time = Column(Integer, nullable=True)  # in minutes
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     restaurant = relationship("Restaurant", back_populates="menu_items")
@@ -382,8 +382,8 @@ class DeliveryPartner(Base):
     latitude = Column(DECIMAL(10, 8), nullable=True)
     longitude = Column(DECIMAL(11, 8), nullable=True)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     orders = relationship("Order", back_populates="delivery_partner")
@@ -455,7 +455,7 @@ class OrderItem(Base):
     quantity = Column(Integer, nullable=False)
     price = Column(DECIMAL(10, 2), nullable=False)
     special_instructions = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     order = relationship("Order", back_populates="items")
@@ -470,7 +470,7 @@ class Review(Base):
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), nullable=False)
     rating = Column(Integer, nullable=False)
     review_text = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     # Relationships
     customer = relationship("Customer")
@@ -483,8 +483,8 @@ class Cart(Base):
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), unique=True, nullable=False)
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     customer = relationship("Customer", back_populates="cart")
@@ -499,8 +499,8 @@ class CartItem(Base):
     cart_id = Column(Integer, ForeignKey("carts.id"), nullable=False)
     menu_item_id = Column(Integer, ForeignKey("menu_items.id"), nullable=False)
     quantity = Column(Integer, default=1)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     cart = relationship("Cart", back_populates="items")
