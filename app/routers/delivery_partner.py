@@ -661,6 +661,12 @@ async def accept_order_for_delivery(
         )
     
     if order.delivery_partner_id:
+        if order.delivery_partner_id == current_delivery_partner.id:
+            return APIResponse(
+                success=True,
+                message="Order already accepted by you",
+                data={"order_id": order.id, "status": order.status}
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Order has already been accepted by another delivery partner"
@@ -735,6 +741,14 @@ async def mark_reached_restaurant(
             detail="Order not found"
         )
     
+    # If already reached, picked up or delivered, return idempotent success
+    if order.status in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.PICKED_UP.value, OrderStatusEnum.DELIVERED.value]:
+        return APIResponse(
+            success=True,
+            message="Already marked reached restaurant",
+            data={"order_id": order.id, "status": order.status}
+        )
+
     # Handle different status scenarios
     if order.status in [OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value]:
         # New flow: Delivery partner is at restaurant and accepting order
@@ -831,10 +845,17 @@ async def mark_order_picked_up(
             detail="This order is not assigned to you"
         )
     
-    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value, OrderStatusEnum.ASSIGNED.value]:
+    if order.status in [OrderStatusEnum.PICKED_UP.value, OrderStatusEnum.DELIVERED.value]:
+        return APIResponse(
+            success=True,
+            message="Order is already marked as picked up",
+            data={"order_id": order.id, "status": order.status}
+        )
+    
+    if order.status not in [OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value, OrderStatusEnum.ASSIGNED.value, OrderStatusEnum.READY.value, OrderStatusEnum.ACCEPTED.value, OrderStatusEnum.PREPARING.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid order status. Current status: {order.status}. Order must be ASSIGNED, REACHED_RESTAURANT or HANDED_OVER."
+            detail=f"Invalid order status. Current status: {order.status}."
         )
     
     # Update status to PICKED_UP
@@ -987,10 +1008,17 @@ async def mark_order_as_delivered(
             detail="This order is not assigned to you"
         )
     
-    if order.status != OrderStatusEnum.PICKED_UP.value:
+    if order.status == OrderStatusEnum.DELIVERED.value:
+        return APIResponse(
+            success=True,
+            message="Order is already marked as delivered",
+            data={"order_id": order.id, "status": order.status}
+        )
+    
+    if order.status not in [OrderStatusEnum.PICKED_UP.value, OrderStatusEnum.REACHED_RESTAURANT.value, OrderStatusEnum.HANDED_OVER.value, OrderStatusEnum.ASSIGNED.value]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order is not out for delivery. Current status: {order.status}"
+            detail=f"Order is not ready to deliver. Current status: {order.status}"
         )
     
     # Update order status to DELIVERED
