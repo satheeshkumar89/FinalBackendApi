@@ -25,6 +25,12 @@ class VerificationStatusEnum(str, enum.Enum):
         return None
 
 
+def get_enum_val(val):
+    if val is None:
+        return None
+    return getattr(val, "value", str(val))
+
+
 class RestaurantTypeEnum(str, enum.Enum):
     RESTAURANT = "restaurant"
     CAFE = "cafe"
@@ -114,7 +120,7 @@ class Restaurant(Base):
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("owners.id"), nullable=False)
     restaurant_name = Column(String(255), nullable=False)
-    restaurant_type = Column(Enum(RestaurantTypeEnum, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    restaurant_type = Column(String(50), nullable=False, default="restaurant")
     fssai_license_number = Column(String(50), unique=True, nullable=False)
     opening_time = Column(String(10), nullable=False)  # Format: HH:MM
     closing_time = Column(String(10), nullable=False)  # Format: HH:MM
@@ -125,7 +131,7 @@ class Restaurant(Base):
     is_open = Column(Boolean, default=False)
     average_rating = Column(DECIMAL(3, 2), default=0.0)
     total_reviews = Column(Integer, default=0)
-    verification_status = Column(Enum(VerificationStatusEnum, values_callable=lambda x: [e.value for e in x]), default=VerificationStatusEnum.PENDING)
+    verification_status = Column(String(50), default="pending")
     verification_notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -373,7 +379,7 @@ class DeliveryPartner(Base):
     is_active = Column(Boolean, default=True)
     is_online = Column(Boolean, default=False)  # Online/Offline status
     is_registered = Column(Boolean, default=False)  # Complete registration status
-    verification_status = Column(Enum(VerificationStatusEnum, values_callable=lambda x: [e.value for e in x]), default=VerificationStatusEnum.PENDING)  # Admin approval
+    verification_status = Column(String(50), default="pending")  # Admin approval
     verification_notes = Column(Text, nullable=True)  # Admin notes for approval/rejection
     last_online_at = Column(DateTime(timezone=True), nullable=True)
     last_offline_at = Column(DateTime(timezone=True), nullable=True)

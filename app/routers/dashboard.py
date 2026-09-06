@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_restaurant
 from app.schemas import APIResponse, DashboardResponse, DashboardSummary, QuickAction
-from app.models import Restaurant
+from app.models import Restaurant, get_enum_val
 from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -81,7 +81,7 @@ def get_restaurant_status(
             "location": location,
             "opening_time": str(restaurant.opening_time) if restaurant.opening_time else None,
             "closing_time": str(restaurant.closing_time) if restaurant.closing_time else None,
-            "verification_status": restaurant.verification_status.value
+            "verification_status": get_enum_val(restaurant.verification_status)
         }
     )
 

@@ -230,6 +230,16 @@ def patch_database():
             except Exception as e:
                 print(f"❌ Error normalizing verification_status: {e}")
 
+            # --- 9. Ensure verification_status and restaurant_type are VARCHAR(50) ---
+            print("Ensuring verification_status and restaurant_type are VARCHAR(50)...")
+            try:
+                connection.execute(text("ALTER TABLE delivery_partners MODIFY COLUMN verification_status VARCHAR(50) DEFAULT 'pending'"))
+                connection.execute(text("ALTER TABLE restaurants MODIFY COLUMN verification_status VARCHAR(50) DEFAULT 'pending'"))
+                connection.execute(text("ALTER TABLE restaurants MODIFY COLUMN restaurant_type VARCHAR(50) NOT NULL DEFAULT 'restaurant'"))
+                print("✅ Converted verification_status and restaurant_type columns to VARCHAR(50).")
+            except Exception as e:
+                print(f"⚠️ Note on altering verification_status/restaurant_type: {e}")
+
             # Final Commit for MySQL behavior
             connection.execute(text("COMMIT"))
             print("\nDatabase patch completed successfully.")

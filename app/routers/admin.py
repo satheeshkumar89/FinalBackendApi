@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.schemas import APIResponse
-from app.models import Restaurant, VerificationStatusEnum, Cuisine
+from app.models import Restaurant, VerificationStatusEnum, Cuisine, get_enum_val
 from app.services.verification_service import VerificationService
 from pydantic import BaseModel
 
@@ -32,9 +32,9 @@ def get_pending_restaurants(db: Session = Depends(get_db)):
         restaurant_list.append({
             "id": restaurant.id,
             "restaurant_name": restaurant.restaurant_name,
-            "restaurant_type": restaurant.restaurant_type.value if restaurant.restaurant_type else None,
+            "restaurant_type": get_enum_val(restaurant.restaurant_type),
             "fssai_license_number": restaurant.fssai_license_number,
-            "verification_status": restaurant.verification_status.value,
+            "verification_status": get_enum_val(restaurant.verification_status),
             "verification_notes": restaurant.verification_notes,
             "owner_name": restaurant.owner.full_name if restaurant.owner else None,
             "owner_phone": restaurant.owner.phone_number if restaurant.owner else None,
@@ -97,11 +97,11 @@ def get_restaurant_verification_details(
             "restaurant": {
                 "id": restaurant.id,
                 "restaurant_name": restaurant.restaurant_name,
-                "restaurant_type": restaurant.restaurant_type.value if restaurant.restaurant_type else None,
+                "restaurant_type": get_enum_val(restaurant.restaurant_type),
                 "fssai_license_number": restaurant.fssai_license_number,
                 "opening_time": str(restaurant.opening_time) if restaurant.opening_time else None,
                 "closing_time": str(restaurant.closing_time) if restaurant.closing_time else None,
-                "verification_status": restaurant.verification_status.value,
+                "verification_status": get_enum_val(restaurant.verification_status),
                 "verification_notes": restaurant.verification_notes,
                 "is_open": restaurant.is_open,
                 "created_at": restaurant.created_at
@@ -159,7 +159,7 @@ def update_verification_status(
             message=f"Restaurant verification status updated to {verification_data.status}",
             data={
                 "restaurant_id": restaurant_id,
-                "status": restaurant.verification_status.value,
+                "status": get_enum_val(restaurant.verification_status),
                 "notes": restaurant.verification_notes,
                 "updated_at": restaurant.updated_at
             }
@@ -201,8 +201,8 @@ def get_all_restaurants(
         restaurant_list.append({
             "id": restaurant.id,
             "restaurant_name": restaurant.restaurant_name,
-            "restaurant_type": restaurant.restaurant_type.value if restaurant.restaurant_type else None,
-            "verification_status": restaurant.verification_status.value,
+            "restaurant_type": get_enum_val(restaurant.restaurant_type),
+            "verification_status": get_enum_val(restaurant.verification_status),
             "is_open": restaurant.is_open,
             "owner_phone": restaurant.owner.phone_number if restaurant.owner else None,
             "created_at": restaurant.created_at
@@ -239,7 +239,7 @@ def get_pending_delivery_partners(db: Session = Depends(get_db)):
             "vehicle_number": partner.vehicle_number,
             "vehicle_type": partner.vehicle_type,
             "license_number": partner.license_number,
-            "verification_status": partner.verification_status.value,
+            "verification_status": get_enum_val(partner.verification_status),
             "verification_notes": partner.verification_notes,
             "is_registered": partner.is_registered,
             "rating": float(partner.rating) if partner.rating else 5.0,
@@ -290,7 +290,7 @@ def get_delivery_partner_verification_details(
                 "license_number": partner.license_number,
                 "profile_photo": partner.profile_photo,
                 "rating": float(partner.rating) if partner.rating else 5.0,
-                "verification_status": partner.verification_status.value,
+                "verification_status": get_enum_val(partner.verification_status),
                 "verification_notes": partner.verification_notes,
                 "is_active": partner.is_active,
                 "is_online": partner.is_online,
@@ -371,7 +371,7 @@ async def update_delivery_partner_verification_status(
             message=f"Delivery partner verification status updated to {verification_data.status}",
             data={
                 "partner_id": partner_id,
-                "status": partner.verification_status.value,
+                "status": get_enum_val(partner.verification_status),
                 "notes": partner.verification_notes,
                 "updated_at": partner.updated_at
             }
@@ -418,7 +418,7 @@ def get_all_delivery_partners(
             "phone_number": partner.phone_number,
             "vehicle_type": partner.vehicle_type,
             "vehicle_number": partner.vehicle_number,
-            "verification_status": partner.verification_status.value,
+            "verification_status": get_enum_val(partner.verification_status),
             "is_online": partner.is_online,
             "is_active": partner.is_active,
             "rating": float(partner.rating) if partner.rating else 5.0,

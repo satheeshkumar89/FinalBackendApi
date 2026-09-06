@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models import Restaurant, VerificationStatusEnum
+from app.models import Restaurant, VerificationStatusEnum, get_enum_val
 from datetime import datetime
 
 
@@ -40,7 +40,7 @@ class VerificationService:
             return None
         
         return {
-            "status": restaurant.verification_status.value,
+            "status": get_enum_val(restaurant.verification_status),
             "verification_notes": restaurant.verification_notes,
             "updated_at": restaurant.updated_at
         }

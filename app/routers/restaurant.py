@@ -12,7 +12,7 @@ from app.schemas import (
 )
 from app.models import (
     Owner, Restaurant, Cuisine, RestaurantCuisine, Address, Document,
-    RestaurantTypeEnum, VerificationStatusEnum
+    RestaurantTypeEnum, VerificationStatusEnum, get_enum_val
 )
 from app.services.s3_service import s3_service
 from app.services.verification_service import VerificationService
@@ -68,7 +68,7 @@ def get_onboarding_status(
     # Verification Status
     verification_status = "pending"
     if restaurant:
-        verification_status = restaurant.verification_status.value
+        verification_status = get_enum_val(restaurant.verification_status)
         
     # If already submitted/approved, next_step might be different
     if verification_status in ["submitted", "under_review", "approved", "rejected"]:
@@ -621,7 +621,7 @@ def refresh_verification_status(
         success=True,
         message="Status refreshed successfully",
         data={
-            "status": restaurant.verification_status.value,
+            "status": get_enum_val(restaurant.verification_status),
             "verification_notes": restaurant.verification_notes,
             "updated_at": restaurant.updated_at
         }
