@@ -1,19 +1,23 @@
 import requests
 import time
 
-BASE_URL = "https://dharaifooddelivery.in"
+BASE_URL = "https://dharaidelivery.online"
 # Use a test delivery partner phone
 PARTNER_PHONE = "+919000000001"
 CUSTOMER_PHONE = "+919578757944" # From user's curl
 
 def get_token(role, phone):
-    prefix = "/customer/auth" if role == "customer" else "/delivery-partner/auth"
-    if role == "restaurant": prefix = "/auth"
+    prefix = "/customer/auth" if role == "customer" else ("/delivery-partner/auth" if role == "delivery" else "/auth")
     
-    # Try dev otp
+    # Send OTP
+    requests.post(f"{BASE_URL}{prefix}/send-otp", json={"phone_number": phone, "full_name": "Test User"})
+    
+    # Verify OTP
     r = requests.post(f"{BASE_URL}{prefix}/verify-otp", json={"phone_number": phone, "otp_code": "123456"})
     if r.status_code == 200:
-        return r.json().get("access_token")
+        data = r.json()
+        return data.get("access_token") or (data.get("data") or {}).get("access_token")
+    print(f"Token Error [{role}]: {r.status_code} - {r.text}")
     return None
 
 def test_flow():

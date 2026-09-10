@@ -456,10 +456,13 @@ async def get_available_orders(
     """
     Get all orders that are ready for delivery pickup.
     Available orders are in READY status and have no delivery partner assigned.
-    These are within 5km proximity of the delivery partner.
+    Returns empty list if partner is offline.
     """
+    if not current_delivery_partner.is_online:
+        return []
+
     orders = db.query(Order).filter(
-        Order.status.in_([OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value]),
+        Order.status.in_([OrderStatusEnum.READY.value, OrderStatusEnum.HANDED_OVER.value, OrderStatusEnum.PREPARING.value, OrderStatusEnum.ACCEPTED.value]),
         Order.delivery_partner_id == None
     ).order_by(desc(Order.created_at)).all()
     

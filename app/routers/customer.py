@@ -227,14 +227,16 @@ def calculate_cart_totals(cart: Cart, db: Session = None, address_id: int = None
 
     if item_total > 0:
         if distance_km is None:
-            delivery_fee = Decimal("40.0")
-        elif distance_km < 3.0:
-            delivery_fee = Decimal("40.0")
+            delivery_fee = Decimal("25.0")
+        elif distance_km <= 2.0:
+            delivery_fee = Decimal("20.0")  # ₹20 for 0-2 km
+        elif distance_km <= 4.0:
+            delivery_fee = Decimal("30.0")  # ₹30 for 2-4 km
         else:
-            # 40 base + 7 per km above 3 km, capped at MAX_DELIVERY_FEE (150.0)
-            MAX_DELIVERY_FEE = Decimal("150.0")
-            extra_km = distance_km - 3.0
-            calculated_fee = Decimal("40.0") + Decimal(str(round(extra_km * 7.0, 2)))
+            # ₹30 base + ₹5 per km above 4 km, capped at MAX_DELIVERY_FEE (₹60.0)
+            MAX_DELIVERY_FEE = Decimal("60.0")
+            extra_km = distance_km - 4.0
+            calculated_fee = Decimal("30.0") + Decimal(str(round(extra_km * 5.0, 2)))
             delivery_fee = min(calculated_fee, MAX_DELIVERY_FEE)
     else:
         delivery_fee = Decimal("0.0")
