@@ -77,8 +77,42 @@ def read_root():
     return {
         "message": "FastFoodie Restaurant Partner API",
         "version": "1.0.0",
-        "status": "running"
+        "status": "running",
+        "docs_url": "https://dharaidelivery.online/docs",
+        "admin_docs_url": "https://dharaidelivery.online/admin/docs"
     }
+
+# ============= Dedicated Admin Swagger UI =============
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+
+@app.get("/admin/openapi.json", include_in_schema=False)
+def get_admin_openapi():
+    """Generate OpenAPI schema containing strictly Admin endpoints"""
+    admin_routes = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        tags = getattr(route, "tags", [])
+        if path.startswith("/admin") or "Admin" in tags:
+            # Exclude duplicate /api/v1 routes to keep schema clean
+            if not path.startswith("/api/v1"):
+                admin_routes.append(route)
+
+    return get_openapi(
+        title="FastFoodie Admin Management API",
+        version="1.0.0",
+        description="Dedicated Admin Portal API documentation for platform operations, approvals, and metrics.",
+        routes=admin_routes
+    )
+
+@app.get("/admin/docs", include_in_schema=False)
+def get_admin_swagger_ui():
+    """Separate Swagger UI for Admin Portal"""
+    return get_swagger_ui_html(
+        openapi_url="/admin/openapi.json",
+        title="FastFoodie Admin Portal API Docs",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png"
+    )
 
 @app.get("/health")
 def health_check():
