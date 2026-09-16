@@ -86,12 +86,12 @@ def send_otp_sms(phone_number: str, otp_code: str = None) -> bool:
     
     if api_key:
         try:
-            # 2Factor SMS OTP URL format: https://2factor.in/API/V1/{API_KEY}/SMS/{PHONE_NUMBER}/{OTP_CODE}
-            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}"
+            # 2Factor SMS OTP URL format: https://2factor.in/API/V1/{API_KEY}/SMS/{PHONE_NUMBER}/{OTP_CODE}/OTP1
+            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}/OTP1"
             response = requests.get(url, timeout=10)
             data = response.json()
             if data.get("Status") == "Success":
-                print(f"✅ [2Factor SMS] Sent OTP {otp_code} to {clean_phone} (Session: {data.get('Details')})")
+                print(f"✅ [2Factor SMS] Sent Text SMS OTP {otp_code} to {clean_phone} (Session: {data.get('Details')})")
                 return True
             else:
                 print(f"❌ [2Factor SMS] Failed for {clean_phone}: {data.get('Details')}")
