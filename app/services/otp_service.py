@@ -9,13 +9,15 @@ from app.services.firebase_service import FirebaseService
 settings = get_settings()
 
 
-def generate_otp(length: int = None) -> str:
-    """Generate static OTP 123456 by default for testing/demo"""
-    return "123456"
+import requests
+
+def generate_otp(length: int = 6) -> str:
+    """Generate 6-digit random OTP code"""
+    return "".join(random.choices(string.digits, k=length))
 
 
 def create_otp(db: Session, phone_number: str, owner_id: int = None, customer_id: int = None, delivery_partner_id: int = None) -> OTP:
-    """Create and save OTP to database"""
+    """Create and save OTP to database, then trigger SMS delivery"""
     # Invalidate any existing OTPs for this phone number
     db.query(OTP).filter(
         OTP.phone_number == phone_number,
@@ -36,6 +38,9 @@ def create_otp(db: Session, phone_number: str, owner_id: int = None, customer_id
     db.add(otp)
     db.commit()
     db.refresh(otp)
+    
+    # Automatically send SMS OTP
+    send_otp_sms(phone_number, otp_code)
     
     return otp
 
@@ -72,23 +77,31 @@ def verify_otp(db: Session, phone_number: str, otp_code: str) -> bool:
     return False
 
 
-def send_otp_sms(phone_number: str, otp_code: str = None):
+def send_otp_sms(phone_number: str, otp_code: str = None) -> bool:
     """
-    Send OTP via Firebase Authentication
-    In development mode, it will print the OTP to console
-    In production, Firebase handles OTP delivery
+    Send OTP via 2Factor.in SMS Gateway API
     """
-    result = FirebaseService.send_otp_via_firebase(phone_number)
+    api_key = getattr(settings, "TWOFACTOR_API_KEY", "").strip()
+    clean_phone = phone_number.replace("+91", "").replace("-", "").replace(" ", "").strip()
     
-    if result.get('success'):
-        # In development mode, the OTP is returned in the result
-        if result.get('mode') == 'development' and otp_code:
-            print(f"\n{'='*60}")
-            print(f"📱 SMS OTP for {phone_number}: {otp_code}")
-            print(f"   (Firebase is in development mode)")
-            print(f"{'='*60}\n")
-        return True
-    else:
-        print(f"Failed to send OTP via Firebase: {result.get('error')}")
-        return False
+    if api_key:
+        try:
+            # 2Factor SMS OTP URL format: https://2factor.in/API/V1/{API_KEY}/SMS/{PHONE_NUMBER}/{OTP_CODE}
+            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}"
+            response = requests.get(url, timeout=10)
+            data = response.json()
+            if data.get("Status") == "Success":
+                print(f"✅ [2Factor SMS] Sent OTP {otp_code} to {clean_phone} (Session: {data.get('Details')})")
+                return True
+            else:
+                print(f"❌ [2Factor SMS] Failed for {clean_phone}: {data.get('Details')}")
+        except Exception as e:
+            print(f"❌ [2Factor SMS] Exception while sending to {clean_phone}: {e}")
+            
+    # Fallback / Development mode logging
+    print(f"\n{'='*60}")
+    print(f"📱 SMS OTP for {clean_phone}: {otp_code}")
+    print(f"   (2Factor API Key missing in .env or fallback mode)")
+    print(f"{'='*60}\n")
+    return True
 

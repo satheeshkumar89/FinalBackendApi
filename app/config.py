@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
+    # 2Factor SMS Gateway
+    TWOFACTOR_API_KEY: str = ""
+    
     # Environment
     ENVIRONMENT: str = "development"
     
