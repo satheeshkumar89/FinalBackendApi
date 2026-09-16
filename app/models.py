@@ -283,7 +283,7 @@ class OTP(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     delivery_partner_id = Column(Integer, ForeignKey("delivery_partners.id"), nullable=True)
     phone_number = Column(String(15), nullable=False, index=True)
-    otp_code = Column(String(10), nullable=False)
+    otp_code = Column(String(100), nullable=False)
     is_verified = Column(Boolean, default=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)

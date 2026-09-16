@@ -86,8 +86,9 @@ def patch_database():
                         connection.execute(text(f"ALTER TABLE otps ADD COLUMN {col} INT NULL"))
                         print(f"✅ Added '{col}' column to otps.")
 
-                print("Ensuring owner_id is nullable in otps...")
+                print("Ensuring owner_id is nullable and otp_code is VARCHAR(100) in otps...")
                 connection.execute(text("ALTER TABLE otps MODIFY COLUMN owner_id INT NULL"))
+                connection.execute(text("ALTER TABLE otps MODIFY COLUMN otp_code VARCHAR(100) NOT NULL"))
                 print("✅ Patched otps table.")
             except Exception as e:
                 print(f"❌ Error patching otps: {e}")

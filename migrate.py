@@ -58,6 +58,10 @@ def patch_existing_tables():
                         print("⚠️ Adding missing 'delivery_partner_id' column to 'device_tokens' (MySQL)...")
                         connection.execute(text("ALTER TABLE device_tokens ADD COLUMN delivery_partner_id INT NULL"))
 
+                # Ensure otps.otp_code is VARCHAR(100)
+                if not is_sqlite:
+                    connection.execute(text("ALTER TABLE otps MODIFY COLUMN otp_code VARCHAR(100) NOT NULL"))
+
                 # Ensure owner_id is nullable
                 print("Ensuring owner_id is nullable in 'device_tokens'...")
                 if is_sqlite:
