@@ -60,15 +60,21 @@ def verify_otp_endpoint(request: VerifyOTPRequest, db: Session = Depends(get_db)
             detail="Invalid or expired OTP"
         )
     
-    # Get or create owner
-    owner = db.query(Owner).filter(Owner.phone_number == request.phone_number).first()
+    # Get or create owner with phone variant lookup & safe unique email
+    clean_phone = request.phone_number.strip() if request.phone_number else ""
+    phone_without_cc = clean_phone.replace("+91", "").strip()
+
+    owner = db.query(Owner).filter(
+        (Owner.phone_number == clean_phone) | (Owner.phone_number == phone_without_cc) | (Owner.phone_number == f"+91{phone_without_cc}")
+    ).first()
     
     if not owner:
-        # Create new owner with minimal info
+        import uuid
+        unique_email = f"owner_{phone_without_cc}_{uuid.uuid4().hex[:6]}@fastfoodie.com"
         owner = Owner(
-            phone_number=request.phone_number,
-            full_name="",  # Will be updated later
-            email=f"temp_{request.phone_number}@fastfoodie.com"  # Generate unique dummy email
+            phone_number=clean_phone,
+            full_name="Restaurant Owner",
+            email=unique_email
         )
         db.add(owner)
         db.commit()
