@@ -164,11 +164,8 @@ def send_otp_to_delivery_partner(
                 detail="Your account has been deactivated. Please contact support."
             )
         
-        # Create OTP
+        # Create OTP (creates DB record & sends SMS)
         otp = create_otp(db, request.phone_number, delivery_partner_id=delivery_partner.id)
-        
-        # Send OTP via SMS
-        send_otp_sms(request.phone_number, otp.otp_code)
         
         response_data = {
             "phone_number": request.phone_number,

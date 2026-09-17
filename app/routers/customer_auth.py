@@ -18,11 +18,8 @@ def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
         customer = db.query(Customer).filter(Customer.phone_number == request.phone_number).first()
         customer_id = customer.id if customer else None
         
-        # Create OTP
+        # Create OTP (creates DB record & sends SMS)
         otp = create_otp(db, request.phone_number, customer_id=customer_id)
-        
-        # Send OTP via SMS
-        send_otp_sms(request.phone_number, otp.otp_code)
         
         response_data = {
             "phone_number": request.phone_number,
