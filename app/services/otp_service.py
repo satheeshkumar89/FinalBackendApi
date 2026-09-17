@@ -103,13 +103,13 @@ def send_otp_sms(phone_number: str, otp_code: str = None) -> str:
     
     if api_key:
         try:
-            # 2Factor AUTOGEN Text SMS URL format
-            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/AUTOGEN"
+            # 2Factor SMS URL using approved DFDDEL Sender ID and OTP_LOGIN template
+            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}/OTP_LOGIN"
             response = requests.get(url, timeout=10)
             data = response.json()
             if data.get("Status") == "Success":
                 session_id = data.get("Details")
-                print(f"✅ [2Factor SMS] Sent AUTOGEN Text SMS to Inbox for {clean_phone} (Session: {session_id})")
+                print(f"✅ [2Factor SMS - DFDDEL] Sent Text SMS OTP {otp_code} to Inbox for {clean_phone} (Session: {session_id})")
                 return session_id
             else:
                 print(f"❌ [2Factor SMS] Failed for {clean_phone}: {data.get('Details')}")
