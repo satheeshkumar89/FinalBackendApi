@@ -103,16 +103,28 @@ def send_otp_sms(phone_number: str, otp_code: str = None) -> str:
     
     if api_key:
         try:
-            # 2Factor Standard SMS OTP URL format: https://2factor.in/API/V1/{API_KEY}/SMS/{PHONE_NUMBER}/{OTP_CODE}
-            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}"
+            # 1. Try sending with approved template OTP_LOGIN
+            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}/OTP_LOGIN"
             response = requests.get(url, timeout=10)
+            print(f"📡 [2Factor API] GET {url}")
+            print(f"HTTP STATUS: {response.status_code}")
+            print(f"2FACTOR RESPONSE: {response.text}")
+            
             data = response.json()
             if data.get("Status") == "Success":
                 session_id = data.get("Details")
-                print(f"✅ [2Factor SMS] Sent Text SMS OTP {otp_code} to Inbox for {clean_phone} (Session: {session_id})")
+                print(f"✅ [2Factor SMS] Sent Text SMS OTP {otp_code} to {clean_phone} (Session: {session_id})")
                 return session_id
             else:
-                print(f"❌ [2Factor SMS] Failed for {clean_phone}: {data.get('Details')}")
+                print(f"⚠️ [2Factor SMS] Template request returned: {data.get('Details')}. Retrying with default route...")
+                # Fallback to standard URL
+                url_fallback = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}"
+                response_fb = requests.get(url_fallback, timeout=10)
+                print(f"HTTP STATUS (Fallback): {response_fb.status_code}")
+                print(f"2FACTOR RESPONSE (Fallback): {response_fb.text}")
+                data_fb = response_fb.json()
+                if data_fb.get("Status") == "Success":
+                    return data_fb.get("Details")
         except Exception as e:
             print(f"❌ [2Factor SMS] Exception while sending to {clean_phone}: {e}")
             
