@@ -79,16 +79,40 @@ def verify_otp(db: Session, phone_number: str, otp_code: str) -> bool:
 
 def send_otp_sms(phone_number: str, otp_code: str = None) -> str:
     """
-    Send OTP via 2Factor.in AUTOGEN Text SMS Gateway API
-    Delivers Text SMS directly to user's Inbox from official 2FACTOR Sender ID
+    Send OTP via Renflair SMS Gateway API (with 2Factor fallback)
+    Delivers Text SMS directly to user's Inbox
     """
-    api_key = getattr(settings, "TWOFACTOR_API_KEY", "").strip()
+    renflair_key = getattr(settings, "RENFLAIR_API_KEY", "b79d4a459b11c754c20adc1e8f688ff1").strip()
     clean_phone = phone_number.replace("+91", "").replace("-", "").replace(" ", "").strip()
     
-    if api_key:
+    # 1. Primary Route: Renflair SMS API
+    if renflair_key:
         try:
-            # 1. Try sending with approved template OTP_LOGIN
-            url = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}/OTP_LOGIN"
+            url = f"https://sms.renflair.in/V1.php?API={renflair_key}&PHONE={clean_phone}&OTP={otp_code}"
+            response = requests.get(url, timeout=10)
+            print(f"📡 [Renflair SMS API] GET {url}")
+            print(f"HTTP STATUS: {response.status_code}")
+            print(f"RENFLAIR RESPONSE: {response.text}")
+            
+            try:
+                data = response.json()
+                if data.get("status") == "SUCCESS":
+                    print(f"✅ [Renflair SMS] Sent Text SMS OTP {otp_code} to {clean_phone}")
+                    return "SUCCESS"
+                else:
+                    print(f"⚠️ [Renflair SMS] Response: {data.get('message')}. Retrying with 2Factor...")
+            except Exception:
+                if "SUCCESS" in response.text.upper():
+                    print(f"✅ [Renflair SMS] Sent Text SMS OTP {otp_code} to {clean_phone}")
+                    return "SUCCESS"
+        except Exception as e:
+            print(f"❌ [Renflair SMS] Exception while sending to {clean_phone}: {e}")
+
+    # 2. Secondary Route: 2Factor SMS API Fallback
+    twofactor_key = getattr(settings, "TWOFACTOR_API_KEY", "").strip()
+    if twofactor_key:
+        try:
+            url = f"https://2factor.in/API/V1/{twofactor_key}/SMS/{clean_phone}/{otp_code}/OTP_LOGIN"
             response = requests.get(url, timeout=10)
             print(f"📡 [2Factor API] GET {url}")
             print(f"HTTP STATUS: {response.status_code}")
@@ -99,23 +123,12 @@ def send_otp_sms(phone_number: str, otp_code: str = None) -> str:
                 session_id = data.get("Details")
                 print(f"✅ [2Factor SMS] Sent Text SMS OTP {otp_code} to {clean_phone} (Session: {session_id})")
                 return session_id
-            else:
-                print(f"⚠️ [2Factor SMS] Template request returned: {data.get('Details')}. Retrying with default route...")
-                # Fallback to standard URL
-                url_fallback = f"https://2factor.in/API/V1/{api_key}/SMS/{clean_phone}/{otp_code}"
-                response_fb = requests.get(url_fallback, timeout=10)
-                print(f"HTTP STATUS (Fallback): {response_fb.status_code}")
-                print(f"2FACTOR RESPONSE (Fallback): {response_fb.text}")
-                data_fb = response_fb.json()
-                if data_fb.get("Status") == "Success":
-                    return data_fb.get("Details")
         except Exception as e:
             print(f"❌ [2Factor SMS] Exception while sending to {clean_phone}: {e}")
-            
+
     # Fallback / Development mode logging
     print(f"\n{'='*60}")
     print(f"📱 SMS OTP for {clean_phone}: {otp_code}")
-    print(f"   (2Factor API Key missing in .env or fallback mode)")
     print(f"{'='*60}\n")
     return None
 

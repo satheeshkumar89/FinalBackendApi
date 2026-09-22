@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
-    # 2Factor SMS Gateway
+    # Renflair & 2Factor SMS Gateways
+    RENFLAIR_API_KEY: str = "b79d4a459b11c754c20adc1e8f688ff1"
     TWOFACTOR_API_KEY: str = "74a37ffc-b1eb-11f1-90d7-0200cd936042"
     
     # Environment
