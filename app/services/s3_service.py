@@ -49,7 +49,7 @@ class S3Service:
             # Return a dummy URL if S3 is not configured
             # Changed to HTTPS to avoid Nginx 301 redirects
             print(f"WARNING: S3 not configured. Returning local mock URL for {file_key}")
-            return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
+            return f"https://dharaidelivery.online/mock-upload/{file_key}"
 
         try:
             params = {
@@ -69,7 +69,7 @@ class S3Service:
         except Exception as e:
             print(f"Error generating presigned URL: {e}")
             # Fallback to dummy URL even on AWS errors to keep the flow alive during testing
-            return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
+            return f"https://dharaidelivery.online/mock-upload/{file_key}"
             
     def upload_fileobj(self, file_data, file_key: str, content_type: Optional[str] = None) -> Optional[str]:
         """Upload file object directly to S3 and return public URL"""
@@ -95,7 +95,7 @@ class S3Service:
     def get_file_url(self, file_key: str) -> str:
         """Get public URL for a file in S3 or Local Uploads fallback"""
         if not self.bucket_name:
-            return f"https://dharaifooddelivery.in/uploads/{file_key}"
+            return f"https://dharaidelivery.online/uploads/{file_key}"
         return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_key}"
     
     def delete_file(self, file_key: str) -> bool:

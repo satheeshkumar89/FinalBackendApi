@@ -119,6 +119,7 @@ def health_check():
     return {"status": "healthy"}
 
 @app.put("/mock-upload/{file_path:path}")
+@app.put("/api/v1/mock-upload/{file_path:path}")
 async def mock_upload(file_path: str, request: Request):
     """Bypass S3 upload and save file locally for testing purposes"""
     try:
