@@ -509,6 +509,48 @@ def get_presigned_upload_url(
         )
 
 
+@router.post("/documents/upload-direct", response_model=APIResponse)
+async def upload_document_direct(
+    document_type: str,
+    file: UploadFile = File(...),
+    restaurant: Restaurant = Depends(get_current_restaurant),
+    db: Session = Depends(get_db)
+):
+    """Directly upload document/image file via multipart form data"""
+    try:
+        valid_types = ["fssai_license", "restaurant_photo", "menu_item_image"]
+        if document_type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid document type. Must be one of: {valid_types}"
+            )
+
+        filename = file.filename or "image.jpg"
+        file_key = s3_service.generate_upload_key(document_type, filename)
+        
+        # Upload file directly to S3
+        public_url = s3_service.upload_fileobj(file.file, file_key, content_type=file.content_type)
+        if not public_url:
+            public_url = s3_service.get_file_url(file_key)
+            
+        return APIResponse(
+            success=True,
+            message="File uploaded successfully",
+            data={
+                "public_url": public_url,
+                "file_key": file_key,
+                "filename": filename
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Direct file upload failed: {str(e)}"
+        )
+
+
 @router.post("/documents/confirm-upload", response_model=APIResponse)
 def confirm_document_upload(
     document_type: str,

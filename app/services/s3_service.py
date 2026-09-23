@@ -57,8 +57,8 @@ class S3Service:
                 'Key': file_key
             }
             
-            if content_type:
-                params['ContentType'] = content_type
+            # Do NOT bind ContentType into presigned URL params for mobile uploads
+            # Binding ContentType causes AWS S3 SignatureDoesNotMatch errors if client's HTTP header differs
             
             url = self.s3_client.generate_presigned_url(
                 'put_object',
@@ -70,6 +70,27 @@ class S3Service:
             print(f"Error generating presigned URL: {e}")
             # Fallback to dummy URL even on AWS errors to keep the flow alive during testing
             return f"https://dharaifooddelivery.in/mock-upload/{file_key}"
+            
+    def upload_fileobj(self, file_data, file_key: str, content_type: Optional[str] = None) -> Optional[str]:
+        """Upload file object directly to S3 and return public URL"""
+        if not self.bucket_name:
+            print("WARNING: S3 bucket not configured for direct upload")
+            return None
+        try:
+            extra_args = {}
+            if content_type:
+                extra_args['ContentType'] = content_type
+            
+            self.s3_client.upload_fileobj(
+                Fileobj=file_data,
+                Bucket=self.bucket_name,
+                Key=file_key,
+                ExtraArgs=extra_args
+            )
+            return self.get_file_url(file_key)
+        except Exception as e:
+            print(f"Error uploading file directly to S3: {e}")
+            return None
     
     def get_file_url(self, file_key: str) -> str:
         """Get public URL for a file in S3 or Local Uploads fallback"""
