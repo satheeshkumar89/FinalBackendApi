@@ -1,6 +1,6 @@
 import boto3
+from botocore.client import Config
 from botocore.exceptions import ClientError
-from datetime import timedelta
 from typing import Optional
 from app.config import get_settings
 
@@ -9,17 +9,24 @@ settings = get_settings()
 
 class S3Service:
     def __init__(self):
+        # AWS S3 error indicated expecting us-east-1 region for bucket signing
+        region = getattr(settings, 'AWS_REGION', None)
+        if not region or region == 'ap-south-1':
+            region = 'us-east-1'
+            
+        self.region = region
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION
+            region_name=self.region,
+            config=Config(signature_version='s3v4')
         )
         self.bucket_name = settings.S3_BUCKET_NAME
         if not self.bucket_name:
             print("CRITICAL ERROR: S3_BUCKET_NAME is missing or empty in settings!")
         else:
-            print(f"S3Service initialized with bucket: {self.bucket_name}")
+            print(f"S3Service initialized with bucket: {self.bucket_name} in region: {self.region}")
     
     def generate_presigned_url(
         self, 
@@ -68,7 +75,7 @@ class S3Service:
         """Get public URL for a file in S3 or Local Uploads fallback"""
         if not self.bucket_name:
             return f"https://dharaifooddelivery.in/uploads/{file_key}"
-        return f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{file_key}"
+        return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_key}"
     
     def delete_file(self, file_key: str) -> bool:
         """Delete file from S3"""
