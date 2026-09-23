@@ -129,6 +129,10 @@ async def mock_upload(file_path: str, request: Request):
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, "wb") as f:
             f.write(content)
+        try:
+            os.chmod(full_path, 0o644)
+        except Exception:
+            pass
         return {
             "message": f"Successfully mock-uploaded {file_path}", 
             "status": "success", 
