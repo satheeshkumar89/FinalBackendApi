@@ -9,8 +9,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create uploads directory if it doesn't exist
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
+os.makedirs("uploads", mode=0o777, exist_ok=True)
+try:
+    os.chmod("uploads", 0o777)
+except Exception:
+    pass
 
 from app.routers import auth, owner, restaurant, dashboard, menu, orders, admin, customer_auth, customer, notifications, delivery_partner
 # from app.socket_manager import sio_app
@@ -125,12 +128,17 @@ async def mock_upload(file_path: str, request: Request):
     try:
         content = await request.body()
         full_path = os.path.join("uploads", file_path)
-        # Ensure subdirectory exists
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        dir_path = os.path.dirname(full_path)
+        os.makedirs(dir_path, mode=0o777, exist_ok=True)
+        try:
+            os.chmod(dir_path, 0o777)
+        except Exception:
+            pass
+            
         with open(full_path, "wb") as f:
             f.write(content)
         try:
-            os.chmod(full_path, 0o644)
+            os.chmod(full_path, 0o666)
         except Exception:
             pass
         return {
