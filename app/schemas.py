@@ -121,6 +121,13 @@ class RestaurantResponse(BaseModel):
     verification_status: str
     created_at: datetime
     
+    @validator("image_url", "coverImage", pre=True, always=True)
+    def format_restaurant_image_urls(cls, v):
+        if not v:
+            return v
+        from app.services.s3_service import s3_service
+        return s3_service.get_file_url(v)
+
     class Config:
         from_attributes = True
 
@@ -215,6 +222,13 @@ class DocumentUploadResponse(BaseModel):
     file_name: str
     uploaded_at: datetime
     
+    @validator("file_url", pre=True, always=True)
+    def format_doc_file_url(cls, v):
+        if not v:
+            return v
+        from app.services.s3_service import s3_service
+        return s3_service.get_file_url(v)
+
     class Config:
         from_attributes = True
 
@@ -348,6 +362,13 @@ class MenuItemResponse(BaseModel):
 
     created_at: Optional[datetime] = None
     
+    @validator("image_url", pre=True, always=True)
+    def format_menu_item_image_url(cls, v):
+        if not v:
+            return v
+        from app.services.s3_service import s3_service
+        return s3_service.get_file_url(v)
+
     class Config:
         from_attributes = True
 

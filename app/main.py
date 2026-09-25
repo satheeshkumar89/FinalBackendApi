@@ -145,7 +145,7 @@ async def mock_upload(file_path: str, request: Request):
         return {
             "message": f"Successfully mock-uploaded {file_path}", 
             "status": "success", 
-            "url": f"https://dharaidelivery.online/uploads/{file_path}"
+            "url": f"https://dharaidelivery.online/api/v1/uploads/{file_path}"
         }
     except Exception as e:
         return {"message": f"Failed to mock-upload: {str(e)}", "status": "error"}

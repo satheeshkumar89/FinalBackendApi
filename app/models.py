@@ -148,9 +148,10 @@ class Restaurant(Base):
     @property
     def image_url(self):
         """Standard image URL used for compatibility"""
+        from app.services.s3_service import s3_service
         for doc in self.documents:
             if doc.document_type == 'restaurant_photo':
-                return doc.file_url
+                return s3_service.get_file_url(doc.file_url)
         return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
 
     @property

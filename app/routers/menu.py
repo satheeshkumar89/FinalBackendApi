@@ -154,13 +154,17 @@ def add_menu_item(
                     detail=f"Category with id {item_data.category_id} not found"
                 )
         
+        from app.services.s3_service import s3_service
+        
+        clean_image_url = s3_service.get_file_url(item_data.image_url) if item_data.image_url else None
+        
         menu_item = MenuItem(
             restaurant_id=restaurant.id,
             name=item_data.name,
             description=item_data.description,
             price=item_data.price,
             discount_price=item_data.discount_price,
-            image_url=item_data.image_url,
+            image_url=clean_image_url,
             category_id=item_data.category_id,
             is_vegetarian=item_data.is_vegetarian,
             is_available=item_data.is_available,
@@ -195,6 +199,8 @@ def update_menu_item(
 ):
     """Update menu item"""
     try:
+        from app.services.s3_service import s3_service
+
         # Get menu item
         menu_item = db.query(MenuItem).filter(
             MenuItem.id == item_id,
@@ -219,6 +225,9 @@ def update_menu_item(
         
         # Update fields
         update_data = item_data.dict(exclude_unset=True)
+        if "image_url" in update_data and update_data["image_url"]:
+            update_data["image_url"] = s3_service.get_file_url(update_data["image_url"])
+
         for field, value in update_data.items():
             setattr(menu_item, field, value)
         

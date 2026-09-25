@@ -36,7 +36,7 @@ class S3Service:
         content_type: Optional[str] = None
     ) -> str:
         """Return server upload URL to guarantee 100% reliable image uploads"""
-        return f"https://dharaidelivery.online/mock-upload/{file_key}"
+        return f"https://dharaidelivery.online/api/v1/mock-upload/{file_key}"
             
     def upload_fileobj(self, file_data, file_key: str, content_type: Optional[str] = None) -> Optional[str]:
         """Upload file object directly to S3 or local uploads and return public URL"""
@@ -45,18 +45,48 @@ class S3Service:
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with open(full_path, "wb") as f:
                 f.write(file_data.read())
-            return f"https://dharaidelivery.online/uploads/{file_key}"
+            return f"https://dharaidelivery.online/api/v1/uploads/{file_key}"
         except Exception as e:
             print(f"Error uploading file directly: {e}")
-            return f"https://dharaidelivery.online/uploads/{file_key}"
+            return f"https://dharaidelivery.online/api/v1/uploads/{file_key}"
     
-    def get_file_url(self, file_key: str) -> str:
-        """Get public URL for a file"""
+    def get_file_url(self, file_key: Optional[str]) -> str:
+        """Get 100% clean, reliable public HTTPS URL for any file key or image URL"""
         if not file_key:
             return ""
-        if file_key.startswith("http://") or file_key.startswith("https://"):
-            return file_key
-        return f"https://dharaidelivery.online/uploads/{file_key}"
+        
+        file_key_str = str(file_key).strip()
+        if not file_key_str:
+            return ""
+            
+        # If it's a valid external URL (e.g. Unsplash), leave it
+        if file_key_str.startswith("https://") and not any(d in file_key_str for d in [
+            "dharaidelivery.online", "dharaifooddelivery.in", "amazonaws.com", "s3.amazonaws.com"
+        ]):
+            return file_key_str
+
+        # Extract relative path after uploads/ or domain or bucket name
+        clean_path = file_key_str
+        
+        if "/uploads/" in clean_path:
+            clean_path = clean_path.split("/uploads/")[-1]
+        elif clean_path.startswith("uploads/"):
+            clean_path = clean_path[len("uploads/"):]
+        elif clean_path.startswith("/uploads/"):
+            clean_path = clean_path[len("/uploads/"):]
+        elif clean_path.startswith("http://") or clean_path.startswith("https://"):
+            parts = clean_path.split("/")
+            if len(parts) >= 2:
+                clean_path = "/".join(parts[-2:])
+            else:
+                clean_path = parts[-1]
+                
+        clean_path = clean_path.lstrip("/")
+        
+        if not clean_path:
+            return file_key_str
+            
+        return f"https://dharaidelivery.online/api/v1/uploads/{clean_path}"
     
     def delete_file(self, file_key: str) -> bool:
         """Delete file from S3"""

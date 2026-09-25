@@ -112,6 +112,8 @@ def patch_existing_tables():
     except Exception as e:
         print(f"✗ Error patching tables: {e}")
         # Continue anyway as create_all might handle some parts
+    
+    clean_image_urls_in_db()
 
 
 def create_tables():
@@ -164,6 +166,41 @@ def seed_cuisines():
         db.close()
 
 
+def clean_image_urls_in_db():
+    """Clean all existing image URLs in DB to use https://dharaidelivery.online/api/v1/uploads/..."""
+    print("Cleaning image URLs in DB...")
+    try:
+        from app.services.s3_service import s3_service
+        from app.models import MenuItem, Document
+        db = SessionLocal()
+        try:
+            # Clean MenuItem image_urls
+            items = db.query(MenuItem).filter(MenuItem.image_url.isnot(None)).all()
+            for item in items:
+                if item.image_url:
+                    cleaned = s3_service.get_file_url(item.image_url)
+                    if cleaned != item.image_url:
+                        item.image_url = cleaned
+                        
+            # Clean Document file_urls
+            docs = db.query(Document).filter(Document.file_url.isnot(None)).all()
+            for doc in docs:
+                if doc.file_url:
+                    cleaned = s3_service.get_file_url(doc.file_url)
+                    if cleaned != doc.file_url:
+                        doc.file_url = cleaned
+
+            db.commit()
+            print("✓ Image URLs cleaned in DB")
+        except Exception as e:
+            print(f"Note: Error cleaning image URLs in DB: {e}")
+            db.rollback()
+        finally:
+            db.close()
+    except Exception as outer_e:
+        print(f"Note: Could not import models/services for cleaning image URLs: {outer_e}")
+
+
 def main():
     """Main migration function"""
     print("=" * 50)
@@ -173,6 +210,7 @@ def main():
     try:
         create_tables()
         patch_existing_tables() # Added this call
+        clean_image_urls_in_db()
         seed_cuisines()
         
         print("\n" + "=" * 50)
