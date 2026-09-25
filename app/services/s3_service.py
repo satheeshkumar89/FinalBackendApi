@@ -35,43 +35,8 @@ class S3Service:
         expiration: int = 3600,
         content_type: Optional[str] = None
     ) -> str:
-        """
-        Generate presigned URL for uploading file to S3
-        
-        Args:
-            file_key: S3 object key (path)
-            expiration: URL expiration time in seconds
-            content_type: MIME type of the file
-        
-        Returns:
-            Presigned URL string
-        """
-        if not self.bucket_name:
-            # Return a dummy URL if S3 is not configured
-            # Changed to HTTPS to avoid Nginx 301 redirects
-            print(f"WARNING: S3 not configured. Returning local mock URL for {file_key}")
-            return f"https://dharaidelivery.online/mock-upload/{file_key}"
-
-        try:
-            # Check if AWS credentials are dummy or if local upload mode is preferred
-            if not self.bucket_name or "dummy" in getattr(settings, 'AWS_ACCESS_KEY_ID', '').lower() or True:
-                # Return reliable EC2 server upload endpoint
-                return f"https://dharaidelivery.online/mock-upload/{file_key}"
-            
-            params = {
-                'Bucket': self.bucket_name,
-                'Key': file_key
-            }
-            
-            url = self.s3_client.generate_presigned_url(
-                'put_object',
-                Params=params,
-                ExpiresIn=expiration
-            )
-            return url
-        except Exception as e:
-            print(f"Error generating presigned URL: {e}")
-            return f"https://dharaidelivery.online/mock-upload/{file_key}"
+        """Return server upload URL to guarantee 100% reliable image uploads"""
+        return f"https://dharaidelivery.online/mock-upload/{file_key}"
             
     def upload_fileobj(self, file_data, file_key: str, content_type: Optional[str] = None) -> Optional[str]:
         """Upload file object directly to S3 or local uploads and return public URL"""
