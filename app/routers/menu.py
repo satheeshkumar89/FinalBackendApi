@@ -136,6 +136,8 @@ def get_menu_items_grouped(
 
 
 @router.post("/item/add", response_model=APIResponse)
+@router.post("/items", response_model=APIResponse)
+@router.post("/items/add", response_model=APIResponse)
 def add_menu_item(
     item_data: MenuItemCreate,
     restaurant: Restaurant = Depends(get_current_restaurant),
