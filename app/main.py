@@ -58,8 +58,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Static Files
+# Mount Static Files (both root and /api/v1 prefixes)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/api/v1/uploads", StaticFiles(directory="uploads"), name="api_v1_uploads")
 
 # Mount Socket.IO app
 # app.mount("/socket.io", sio_app)
