@@ -307,9 +307,28 @@ def add_to_cart(
 @router.get("/cart", response_model=APIResponse)
 def get_cart(
     db: Session = Depends(get_db),
-    current_customer: Customer = Depends(get_current_customer)
+    current_customer: Optional[Customer] = Depends(get_optional_current_customer)
 ):
-    """Get cart details"""
+    """Get cart details (supports guest mode)"""
+    if not current_customer:
+        empty_cart_data = {
+            "id": None,
+            "customer_id": None,
+            "restaurant_id": None,
+            "restaurant": None,
+            "items": [],
+            "item_count": 0,
+            "subtotal": 0.0,
+            "tax": 0.0,
+            "delivery_fee": 0.0,
+            "discount": 0.0,
+            "grand_total": 0.0
+        }
+        return APIResponse(
+            success=True,
+            message="Cart fetched successfully",
+            data=empty_cart_data
+        )
     cart = get_or_create_cart(db, current_customer.id)
     return APIResponse(
         success=True,
@@ -574,9 +593,15 @@ def add_address(
 @router.get("/addresses", response_model=APIResponse)
 def get_addresses(
     db: Session = Depends(get_db),
-    current_customer: Customer = Depends(get_current_customer)
+    current_customer: Optional[Customer] = Depends(get_optional_current_customer)
 ):
-    """Get all saved addresses"""
+    """Get all saved addresses (supports guest mode)"""
+    if not current_customer:
+        return APIResponse(
+            success=True,
+            message="Addresses fetched successfully",
+            data=[]
+        )
     addresses = db.query(CustomerAddress).filter(
         CustomerAddress.customer_id == current_customer.id
     ).order_by(CustomerAddress.is_default.desc(), CustomerAddress.created_at.desc()).all()
@@ -649,9 +674,15 @@ def delete_address(
 @router.get("/orders", response_model=APIResponse)
 def get_order_history(
     db: Session = Depends(get_db),
-    current_customer: Customer = Depends(get_current_customer)
+    current_customer: Optional[Customer] = Depends(get_optional_current_customer)
 ):
-    """Get customer order history"""
+    """Get customer order history (supports guest mode)"""
+    if not current_customer:
+        return APIResponse(
+            success=True,
+            message="Order history fetched successfully",
+            data=[]
+        )
     orders = db.query(Order).filter(
         Order.customer_id == current_customer.id
     ).order_by(Order.created_at.desc()).all()
