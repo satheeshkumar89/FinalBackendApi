@@ -11,8 +11,8 @@ from app.schemas import (
     CustomerLocationUpdate, CustomerLocationResponse
 )
 from app.models import Customer, Restaurant, Category, MenuItem, Review, Cart, CartItem, Order, OrderItem, Address, CustomerAddress, DeliveryPartner, OrderStatusEnum, CustomerLocation
-from app.dependencies import get_current_customer
-from typing import List
+from app.dependencies import get_current_customer, get_optional_current_customer
+from typing import List, Optional
 from decimal import Decimal
 from datetime import datetime
 from app.utils.timezone import get_ist_now
@@ -50,9 +50,9 @@ def get_profile(current_customer: Customer = Depends(get_current_customer)):
 @router.get("/home", response_model=APIResponse)
 def get_home_data(
     db: Session = Depends(get_db),
-    current_customer: Customer = Depends(get_current_customer)
+    current_customer: Optional[Customer] = Depends(get_optional_current_customer)
 ):
-    """Get home screen data"""
+    """Get home screen data (accessible publicly or authenticated)"""
     # Get categories
     categories = db.query(Category).filter(Category.is_active == True).order_by(Category.display_order).all()
     
@@ -90,7 +90,7 @@ def get_home_data(
 def get_restaurant_details(
     restaurant_id: int,
     db: Session = Depends(get_db),
-    current_customer: Customer = Depends(get_current_customer)
+    current_customer: Optional[Customer] = Depends(get_optional_current_customer)
 ):
     """Get restaurant details, menu, and reviews"""
     restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()

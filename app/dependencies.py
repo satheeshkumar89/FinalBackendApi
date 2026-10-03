@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -141,6 +142,33 @@ def get_current_customer(
         )
     
     return customer
+
+
+security_optional = HTTPBearer(auto_error=False)
+
+
+def get_optional_current_customer(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
+    db: Session = Depends(get_db)
+) -> Optional[Customer]:
+    """Get optional authenticated customer from JWT token without throwing 401/403 if unauthenticated"""
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        token = credentials.credentials
+        payload = verify_token(token)
+        if not payload or payload.get("token_type") == "refresh":
+            return None
+        customer_id = payload.get("customer_id")
+        if not customer_id:
+            phone_number = payload.get("phone_number")
+            if phone_number:
+                return db.query(Customer).filter(Customer.phone_number == phone_number, Customer.is_active == True).first()
+            return None
+        return db.query(Customer).filter(Customer.id == customer_id, Customer.is_active == True).first()
+    except Exception:
+        return None
+
 
 
 def get_current_delivery_partner(
