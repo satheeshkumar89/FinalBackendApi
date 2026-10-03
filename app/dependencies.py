@@ -23,6 +23,13 @@ def get_current_owner(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    if payload.get("token_type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token required. You provided a refresh token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     owner_id = payload.get("owner_id")
     if owner_id is None:
         raise HTTPException(
@@ -79,6 +86,13 @@ def get_current_customer(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if payload.get("token_type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token required. You provided a refresh token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -141,6 +155,13 @@ def get_current_delivery_partner(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if payload.get("token_type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token required. You provided a refresh token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
