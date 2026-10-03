@@ -14,7 +14,7 @@ def patch_existing_tables():
     """Add missing columns to existing tables that Base.metadata.create_all misses"""
     print("Checking for missing columns and patching existing tables...")
     try:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             # 1. Patch orders table for released_at
             print("Checking orders table for missing columns...")
             is_sqlite = connection.engine.name == "sqlite"
@@ -107,7 +107,6 @@ def patch_existing_tables():
                 except Exception as col_e:
                     print(f"  - Note: Could not add {col_name}: {col_e}")
 
-            connection.execute(text("COMMIT"))
             print("✅ Database tables patched successfully")
     except Exception as e:
         print(f"✗ Error patching tables: {e}")

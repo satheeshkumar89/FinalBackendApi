@@ -247,18 +247,61 @@ class SendOTPRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     phone_number: str = Field(..., pattern=r'^\+?[1-9]\d{9,14}$')
     otp_code: str = Field(..., min_length=4, max_length=10)
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
-    owner: OwnerResponse
+    expires_in: int = 3600
+    is_new_user: bool = False
+    owner: Optional[OwnerResponse] = None
 
 
 class CustomerTokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
-    customer: CustomerResponse
+    expires_in: int = 3600
+    is_new_user: bool = False
+    customer: Optional[CustomerResponse] = None
+
+
+class DeliveryPartnerTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 3600
+    is_new_user: bool = False
+    delivery_partner: Optional[Any] = None
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
+class SessionResponse(BaseModel):
+    id: int
+    user_id: int
+    user_type: str
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: datetime
+    last_used_at: datetime
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
 
 
 # ============= Notification & Device Token Schemas =============

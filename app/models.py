@@ -514,3 +514,21 @@ class CartItem(Base):
     menu_item = relationship("MenuItem")
 
 
+class UserSession(Base):
+    """Tracks active user refresh token sessions across devices and roles"""
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    user_type = Column(String(50), nullable=False, index=True)  # 'customer', 'owner', 'delivery_partner', 'admin'
+    refresh_token_hash = Column(String(255), unique=True, index=True, nullable=False)
+    device_id = Column(String(255), nullable=True)
+    device_name = Column(String(255), nullable=True)
+    ip_address = Column(String(50), nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, default=datetime.utcnow)
+    revoked_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+

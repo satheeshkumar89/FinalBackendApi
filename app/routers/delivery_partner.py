@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc
 from typing import List, Optional
@@ -14,17 +14,25 @@ from app.models import (
     OrderItem, MenuItem, OTP, DeviceToken, Notification, CustomerLocation
 )
 from app.schemas import (
-    CustomerCreate, APIResponse, DeliveryPartnerResponse,
+    CustomerCreate, APIResponse, DeliveryPartnerResponse, DeliveryPartnerTokenResponse,
     OrderResponse, OrderItemResponse, RestaurantResponse,
     DeviceTokenCreate, NotificationResponse, SendOTPRequest, VerifyOTPRequest,
-    CustomerLocationResponse, AcceptOrderRequest, RejectOrderRequest, CancelOrderRequest
+    CustomerLocationResponse, AcceptOrderRequest, RejectOrderRequest, CancelOrderRequest,
+    RefreshTokenRequest, LogoutRequest, SessionResponse
 )
 from app.services.otp_service import create_otp, verify_otp, send_otp_sms
 from app.services.jwt_service import create_access_token
+from app.services.session_service import (
+    create_user_session,
+    verify_and_refresh_session,
+    revoke_user_session,
+    revoke_all_user_sessions,
+    get_user_sessions
+)
 from app.services.notification_service import NotificationService
 from app.dependencies import get_current_delivery_partner
-# from app.socket_manager import emit_order_update
 from pydantic import BaseModel, Field
+
 
 
 
@@ -33,12 +41,6 @@ router = APIRouter(prefix="/delivery-partner", tags=["Delivery Partner"])
 
 
 # ============= Schemas =============
-class DeliveryPartnerTokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    delivery_partner: DeliveryPartnerResponse
-
-
 class DeliveryPartnerRegisterRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=255)
     email: Optional[str] = None
@@ -196,12 +198,12 @@ def send_otp_to_delivery_partner(
 @router.post("/auth/verify-otp", response_model=DeliveryPartnerTokenResponse)
 def verify_otp_and_login(
     request: VerifyOTPRequest,
+    req: Request,
     db: Session = Depends(get_db)
 ):
     """
-    Verify OTP and return JWT token for delivery partner.
+    Verify OTP and return JWT access + refresh tokens for delivery partner.
     """
-    # Find delivery partner
     delivery_partner = db.query(DeliveryPartner).filter(
         DeliveryPartner.phone_number == request.phone_number
     ).first()
@@ -212,7 +214,6 @@ def verify_otp_and_login(
             detail="Delivery partner not found"
         )
     
-    # Verify OTP
     is_valid = verify_otp(db, request.phone_number, request.otp_code)
     
     if not is_valid:
@@ -221,16 +222,101 @@ def verify_otp_and_login(
             detail="Invalid or expired OTP"
         )
     
-    # Generate JWT token
-    access_token = create_access_token(
-        data={"delivery_partner_id": delivery_partner.id, "phone_number": delivery_partner.phone_number, "role": "delivery_partner"}
+    is_new_user = not delivery_partner.is_registered
+
+    client_ip = req.client.host if req.client else None
+    access_token, refresh_token, expires_in, session = create_user_session(
+        db=db,
+        user_id=delivery_partner.id,
+        user_type="delivery_partner",
+        device_id=request.device_id,
+        device_name=request.device_name,
+        ip_address=client_ip,
+        payload_claims={
+            "delivery_partner_id": delivery_partner.id,
+            "phone_number": delivery_partner.phone_number,
+            "role": "delivery_partner"
+        }
     )
     
     return DeliveryPartnerTokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
+        expires_in=expires_in,
+        is_new_user=is_new_user,
         delivery_partner=DeliveryPartnerResponse.from_orm(delivery_partner)
     )
+
+
+@router.post("/auth/refresh", response_model=DeliveryPartnerTokenResponse)
+def refresh_delivery_partner_token(
+    request_data: RefreshTokenRequest,
+    req: Request,
+    db: Session = Depends(get_db)
+):
+    """Refresh delivery partner access + refresh tokens (Token Rotation)"""
+    client_ip = req.client.host if req.client else None
+    access_token, new_refresh_token, expires_in, session = verify_and_refresh_session(
+        db=db,
+        refresh_token=request_data.refresh_token,
+        device_id=request_data.device_id,
+        device_name=request_data.device_name,
+        ip_address=client_ip
+    )
+    
+    partner = db.query(DeliveryPartner).filter(DeliveryPartner.id == session.user_id).first()
+    partner_resp = DeliveryPartnerResponse.from_orm(partner) if partner else None
+
+    return DeliveryPartnerTokenResponse(
+        access_token=access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer",
+        expires_in=expires_in,
+        is_new_user=False,
+        delivery_partner=partner_resp
+    )
+
+
+@router.post("/auth/logout", response_model=APIResponse)
+def logout_delivery_partner(
+    request_data: Optional[LogoutRequest] = None,
+    db: Session = Depends(get_db)
+):
+    """Logout delivery partner and revoke active session"""
+    if request_data and request_data.refresh_token:
+        revoke_user_session(db, request_data.refresh_token)
+        
+    return APIResponse(
+        success=True,
+        message="Logged out successfully and session revoked",
+        data=None
+    )
+
+
+@router.get("/auth/sessions", response_model=List[SessionResponse])
+def get_active_delivery_partner_sessions(
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """List active sessions for current delivery partner"""
+    sessions = get_user_sessions(db, current_delivery_partner.id, "delivery_partner")
+    return [SessionResponse.from_orm(s) for s in sessions]
+
+
+@router.delete("/auth/sessions/all", response_model=APIResponse)
+def logout_all_delivery_partner_devices(
+    current_delivery_partner: DeliveryPartner = Depends(get_current_delivery_partner),
+    db: Session = Depends(get_db)
+):
+    """Logout delivery partner from all devices"""
+    count = revoke_all_user_sessions(db, current_delivery_partner.id, "delivery_partner")
+    return APIResponse(
+        success=True,
+        message=f"Logged out from {count} device(s) successfully",
+        data={"revoked_count": count}
+    )
+
 
 
 
