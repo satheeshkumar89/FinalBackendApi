@@ -6,14 +6,20 @@ from app.database import get_db
 from app.services.jwt_service import verify_token
 from app.models import Owner, Restaurant, Customer, DeliveryPartner
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def get_current_owner(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> Owner:
     """Get current authenticated owner from JWT token"""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please provide Authorization: Bearer <access_token> header.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     payload = verify_token(token)
     
@@ -76,10 +82,16 @@ def get_current_restaurant(
 
 
 def get_current_customer(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> Customer:
     """Get current authenticated customer from JWT token"""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please provide Authorization: Bearer <access_token> header.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     payload = verify_token(token)
     
@@ -172,10 +184,16 @@ def get_optional_current_customer(
 
 
 def get_current_delivery_partner(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> DeliveryPartner:
     """Get current authenticated delivery partner from JWT token"""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please provide Authorization: Bearer <access_token> header.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     payload = verify_token(token)
     
