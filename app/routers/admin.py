@@ -1,10 +1,10 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.schemas import APIResponse
-from app.models import Restaurant, VerificationStatusEnum, Cuisine, get_enum_val
+from app.models import Restaurant, Address, VerificationStatusEnum, Cuisine, get_enum_val
 from app.services.verification_service import VerificationService
 from pydantic import BaseModel
 
@@ -15,6 +15,18 @@ class UpdateVerificationRequest(BaseModel):
     """Request schema for updating verification status"""
     status: str  # "approved" or "rejected" or "under_review"
     notes: str = None
+
+
+class UpdateRestaurantLocationRequest(BaseModel):
+    """Request schema for updating restaurant latitude and longitude"""
+    latitude: float
+    longitude: float
+    address_line_1: Optional[str] = None
+    address_line_2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    landmark: Optional[str] = None
 
 
 @router.get("/restaurants/pending", response_model=APIResponse)
@@ -576,4 +588,131 @@ def get_seed_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to check seed status: {str(e)}"
+        )
+
+
+@router.put("/restaurants/{restaurant_id}/location", response_model=APIResponse)
+def update_restaurant_location(
+    restaurant_id: int,
+    location_data: UpdateRestaurantLocationRequest,
+    db: Session = Depends(get_db),
+    admin_key: str = Depends(verify_admin_key)
+):
+    """
+    Update restaurant latitude and longitude (and optionally other address fields).
+    
+    **Protected endpoint** - Requires X-Admin-Key header with value: `fastfoodie-admin-secret-key`
+    
+    Example body:
+    ```json
+    {
+        "latitude": 10.7360,
+        "longitude": 77.5270
+    }
+    ```
+    """
+    try:
+        restaurant = db.query(Restaurant).filter(Restaurant.id == restaurant_id).first()
+        if not restaurant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Restaurant with id {restaurant_id} not found"
+            )
+        
+        address = db.query(Address).filter(Address.restaurant_id == restaurant_id).first()
+        
+        if address:
+            # Update existing address
+            address.latitude = location_data.latitude
+            address.longitude = location_data.longitude
+            if location_data.address_line_1:
+                address.address_line_1 = location_data.address_line_1
+            if location_data.address_line_2 is not None:
+                address.address_line_2 = location_data.address_line_2
+            if location_data.city:
+                address.city = location_data.city
+            if location_data.state:
+                address.state = location_data.state
+            if location_data.pincode:
+                address.pincode = location_data.pincode
+            if location_data.landmark is not None:
+                address.landmark = location_data.landmark
+            message = "Restaurant location updated successfully"
+        else:
+            # Create new address
+            address = Address(
+                restaurant_id=restaurant_id,
+                latitude=location_data.latitude,
+                longitude=location_data.longitude,
+                address_line_1=location_data.address_line_1 or "Address not provided",
+                address_line_2=location_data.address_line_2,
+                city=location_data.city or "Unknown",
+                state=location_data.state or "Unknown",
+                pincode=location_data.pincode or "000000",
+                landmark=location_data.landmark
+            )
+            db.add(address)
+            message = "Restaurant location created successfully"
+        
+        db.commit()
+        db.refresh(address)
+        
+        return APIResponse(
+            success=True,
+            message=message,
+            data={
+                "restaurant_id": restaurant.id,
+                "restaurant_name": restaurant.restaurant_name,
+                "address_id": address.id,
+                "latitude": float(address.latitude),
+                "longitude": float(address.longitude),
+                "address_line_1": address.address_line_1,
+                "city": address.city
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update restaurant location: {str(e)}"
+        )
+
+
+@router.get("/restaurants/locations", response_model=APIResponse)
+def get_all_restaurant_locations(
+    db: Session = Depends(get_db),
+    admin_key: str = Depends(verify_admin_key)
+):
+    """
+    List all restaurants with their current latitude and longitude.
+    
+    **Protected endpoint** - Requires X-Admin-Key header with value: `fastfoodie-admin-secret-key`
+    """
+    try:
+        restaurants = db.query(Restaurant).order_by(Restaurant.id).all()
+        
+        locations = []
+        for r in restaurants:
+            address = db.query(Address).filter(Address.restaurant_id == r.id).first()
+            locations.append({
+                "restaurant_id": r.id,
+                "restaurant_name": r.restaurant_name,
+                "latitude": float(address.latitude) if address else None,
+                "longitude": float(address.longitude) if address else None,
+                "address_line_1": address.address_line_1 if address else None,
+                "city": address.city if address else None,
+                "has_address": address is not None
+            })
+        
+        return APIResponse(
+            success=True,
+            message=f"Found {len(locations)} restaurants",
+            data=locations
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch restaurant locations: {str(e)}"
         )
