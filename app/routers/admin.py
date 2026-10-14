@@ -595,13 +595,10 @@ def get_seed_status(
 def update_restaurant_location(
     restaurant_id: int,
     location_data: UpdateRestaurantLocationRequest,
-    db: Session = Depends(get_db),
-    admin_key: str = Depends(verify_admin_key)
+    db: Session = Depends(get_db)
 ):
     """
     Update restaurant latitude and longitude (and optionally other address fields).
-    
-    **Protected endpoint** - Requires X-Admin-Key header with value: `fastfoodie-admin-secret-key`
     
     Example body:
     ```json
@@ -682,13 +679,10 @@ def update_restaurant_location(
 
 @router.get("/restaurants/locations", response_model=APIResponse)
 def get_all_restaurant_locations(
-    db: Session = Depends(get_db),
-    admin_key: str = Depends(verify_admin_key)
+    db: Session = Depends(get_db)
 ):
     """
     List all restaurants with their current latitude and longitude.
-    
-    **Protected endpoint** - Requires X-Admin-Key header with value: `fastfoodie-admin-secret-key`
     """
     try:
         restaurants = db.query(Restaurant).order_by(Restaurant.id).all()
