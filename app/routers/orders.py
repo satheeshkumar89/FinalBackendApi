@@ -185,7 +185,33 @@ async def update_order_status_helper(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Order not found"
         )
-    
+
+    # ── Business-rule guard: HANDED_OVER requires an assigned delivery partner ──
+    if new_status == OrderStatusEnum.HANDED_OVER:
+        # 1. A delivery partner must have accepted (delivery_partner_id is set)
+        if not order.delivery_partner_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Cannot hand over order: no delivery partner has accepted this order yet. "
+                    "Wait until a delivery partner is assigned before handing over."
+                )
+            )
+        # 2. The order must be in ASSIGNED or REACHED_RESTAURANT status
+        allowed_for_handover = [
+            OrderStatusEnum.ASSIGNED.value,
+            OrderStatusEnum.REACHED_RESTAURANT.value,
+        ]
+        if order.status not in allowed_for_handover:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Cannot hand over order in current status '{order.status}'. "
+                    f"Order must be in 'assigned' or 'reached_restaurant' status first."
+                )
+            )
+    # ────────────────────────────────────────────────────────────────────────────
+
     # Update status (ensure lowercase string for DB consistency)
     order.status = new_status.value if hasattr(new_status, 'value') else str(new_status).lower()
     
